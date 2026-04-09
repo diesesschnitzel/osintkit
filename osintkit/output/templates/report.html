@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>osintkit Report</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+        h1 { color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .risk-gauge { padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }
+        .risk-high { background: #fee; color: #c00; }
+        .risk-medium { background: #ffe; color: #960; }
+        .risk-low { background: #efe; color: #060; }
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 20px 0; }
+        .module-card { padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+        .module-done { background: #efe; }
+        .module-failed { background: #fee; }
+        .module-skipped { background: #eee; color: #888; }
+        .findings-section { margin: 20px 0; }
+        .finding-item { padding: 10px; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <h1>osintkit OSINT Report</h1>
+    <p><strong>Scan Date:</strong> {{ scan_date }}</p>
+    <p><strong>Target:</strong> {{ inputs.name or inputs.email or inputs.username or inputs.phone or 'Unknown' }}</p>
+    
+    {% set score = risk_score %}
+    {% if score >= 70 %}
+        <div class="risk-gauge risk-high">
+    {% elif score >= 40 %}
+        <div class="risk-gauge risk-medium">
+    {% else %}
+        <div class="risk-gauge risk-low">
+    {% endif %}
+        <h2>Risk Score: {{ score }}/100</h2>
+    </div>
+    
+    <h2>Module Status</h2>
+    <div class="module-grid">
+        {% for module_name, module_data in modules.items() %}
+            <div class="module-card module-{{ module_data.status }}">
+                <strong>{{ module_name }}</strong><br>
+                {% if module_data.status == 'done' %}
+                    ✓ {{ module_data.count }} findings
+                {% elif module_data.status == 'failed' %}
+                    ✗ {{ module_data.error }}
+                {% else %}
+                    — skipped
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    
+    <h2>Findings</h2>
+    {% for module_name, module_findings in findings.items() %}
+        {% if module_findings %}
+            <div class="findings-section">
+                <h3>{{ module_name }} ({{ module_findings|length }})</h3>
+                {% for finding in module_findings %}
+                    <div class="finding-item">
+                        <strong>{{ finding.type }}</strong> 
+                        <span style="color:#888">via {{ finding.source }}</span>
+                        {% if finding.url %}
+                            <a href="{{ finding.url }}" target="_blank">[link]</a>
+                        {% endif %}
+                        <br><small>Confidence: {{ finding.confidence }}</small>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endfor %}
+</body>
+</html>

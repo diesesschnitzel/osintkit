@@ -1,0 +1,12 @@
+# Optional subprocess-based OSINT tools used by osintkit modules.
+# Install these to enable social profile enumeration, email account checks,
+# and username search:
+#
+#   pip install -r requirements-tools.txt
+#
+# They are not listed as poetry dependencies because they are standalone CLI
+# tools invoked via subprocess rather than imported as Python libraries.
+
+maigret>=0.4.4
+holehe>=1.1.9
+sherlock-project>=0.14.3
