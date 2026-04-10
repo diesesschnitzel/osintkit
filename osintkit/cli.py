@@ -424,9 +424,11 @@ def new():
 
 
 @app.command()
-def list():
-    """List all profiles."""
-    profiles = store.list()
+def list(
+    filter_tag: Optional[str] = typer.Option(None, "--tag", "-t", help="Filter by tag"),
+):
+    """List all profiles. Filter with --tag <name>."""
+    profiles = store.list(tag=filter_tag)
     
     if not profiles:
         console.print("\n[yellow]No profiles found.[/yellow]")
@@ -664,11 +666,87 @@ def delete(profile_ref: str = typer.Argument(None, help="Profile ID or name")):
 
 @app.command()
 def version():
-    """Show version."""
+    """Show version. Also available as: osintkit -v"""
     if _update_thread:
         _update_thread.join(timeout=4)
     console.print(f"osintkit v{__version__}")
     _print_update_notice()
+
+
+@app.command()
+def update():
+    """Check for updates and install the latest version."""
+    import subprocess
+
+    console.print("\n[bold]Checking for updates...[/bold]")
+
+    if _update_thread:
+        _update_thread.join(timeout=5)
+
+    if _update_available:
+        console.print(f"[cyan]New version available: {_update_available}[/cyan]")
+        console.print(f"[dim]Current: {__version__}[/dim]\n")
+        if Confirm.ask("Install now?", default=True):
+            console.print("[dim]Running: npm install -g osintkit[/dim]\n")
+            result = subprocess.run(["npm", "install", "-g", "osintkit"], check=False)
+            if result.returncode == 0:
+                console.print(f"\n[green]✓[/green] Updated to osintkit {_update_available}")
+                console.print("[dim]Restart your terminal for changes to take effect.[/dim]")
+            else:
+                console.print("\n[red]Update failed.[/red] Try manually: npm install -g osintkit")
+    else:
+        console.print(f"[green]✓[/green] Already on latest version (v{__version__})")
+
+
+@app.command()
+def tag(
+    profile_ref: str = typer.Argument(..., help="Profile ID or name"),
+    add: Optional[str] = typer.Option(None, "--add", "-a", help="Tag to add"),
+    remove: Optional[str] = typer.Option(None, "--remove", "-r", help="Tag to remove"),
+    list_tags: bool = typer.Option(False, "--list", "-l", help="List tags on profile"),
+):
+    """Add, remove, or list tags on a profile.
+
+    Examples:
+      osintkit tag abc123 --add client
+      osintkit tag abc123 --remove client
+      osintkit tag abc123 --list
+      osintkit list --tag client        (filter list by tag)
+    """
+    profile = store.get(profile_ref)
+    if not profile:
+        profiles = store.list()
+        for p in profiles:
+            if p.name and p.name.lower() == profile_ref.lower():
+                profile = p
+                break
+    if not profile:
+        console.print(f"[red]Profile not found: {profile_ref}[/red]")
+        raise typer.Exit(1)
+
+    if add:
+        if add not in profile.tags:
+            profile.tags.append(add)
+            store.update(profile)
+            console.print(f"[green]✓[/green] Added tag '{add}' to {profile.name or profile.id}")
+        else:
+            console.print(f"[yellow]Tag '{add}' already exists[/yellow]")
+
+    elif remove:
+        if remove in profile.tags:
+            profile.tags.remove(remove)
+            store.update(profile)
+            console.print(f"[green]✓[/green] Removed tag '{remove}' from {profile.name or profile.id}")
+        else:
+            console.print(f"[yellow]Tag '{remove}' not found[/yellow]")
+
+    else:
+        # Default: list tags
+        if profile.tags:
+            console.print(f"\nTags on [cyan]{profile.name or profile.id}[/cyan]: " +
+                         ", ".join(f"[bold]{t}[/bold]" for t in profile.tags))
+        else:
+            console.print(f"[dim]No tags on {profile.name or profile.id}[/dim]")
 
 
 if __name__ == "__main__":
