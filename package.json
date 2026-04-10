@@ -1,19 +1,21 @@
 {
   "name": "osintkit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "OSINT CLI for personal digital footprint analysis",
   "bin": {
     "osintkit": "./bin/osintkit.js"
   },
   "scripts": {
-    "postinstall": "pip3 install -e . --quiet || true"
+    "postinstall": "node postinstall.js"
   },
   "files": [
     "bin/",
     "osintkit/",
     "pyproject.toml",
     "requirements.txt",
-    "README.md"
+    "requirements-tools.txt",
+    "README.md",
+    "postinstall.js"
   ],
   "keywords": ["osint", "security", "privacy", "cli", "recon"],
   "author": "",

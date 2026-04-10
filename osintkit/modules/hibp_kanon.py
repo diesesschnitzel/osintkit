@@ -1,4 +1,17 @@
-"""HIBP k-anonymity password exposure check using SHA1 prefix API."""
+"""HIBP k-anonymity password exposure check using SHA1 prefix API.
+
+Mock format for tests
+---------------------
+The API returns plain text, one entry per line: ``HASHSUFFIX:COUNT``
+The suffix is uppercase hex (35 chars = SHA1 40 minus 5-char prefix).
+
+Example mock response.text for email "test@example.com":
+    sha1 = hashlib.sha1(b"test@example.com").hexdigest().upper()
+    prefix, suffix = sha1[:5], sha1[5:]
+    mock_text = f"{suffix}:42\\nDEADBEEFCAFE00000000000000000000000:1\\n"
+
+The module checks each line for a matching suffix and reads the count.
+"""
 
 import hashlib
 import logging

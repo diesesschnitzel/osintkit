@@ -3,10 +3,24 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-// Prefer python3.11, fall back to python3, then python
+// The npm package root is one level up from bin/
+const packageDir = path.dirname(path.dirname(__filename));
+
+// Prefer venv Python (installed by postinstall), fall back to system Python
 function findPython() {
-    const candidates = ['python3.11', 'python3', 'python'];
-    for (const bin of candidates) {
+    const venvCandidates = [
+        path.join(packageDir, '.venv', 'bin', 'python3'),
+        path.join(packageDir, '.venv', 'bin', 'python'),
+        path.join(packageDir, 'venv', 'bin', 'python3'),
+        path.join(packageDir, 'venv', 'bin', 'python'),
+    ];
+    for (const p of venvCandidates) {
+        if (fs.existsSync(p)) return p;
+    }
+
+    // Fall back to system Python
+    const systemCandidates = ['python3.11', 'python3', 'python'];
+    for (const bin of systemCandidates) {
         try {
             require('child_process').execSync(`${bin} --version`, { stdio: 'ignore' });
             return bin;
@@ -15,14 +29,25 @@ function findPython() {
     return 'python3';
 }
 
-const python = spawn(findPython(), ['-m', 'osintkit', ...process.argv.slice(2)], {
+const pythonBin = findPython();
+
+// Always set PYTHONPATH so the package is importable regardless of install method
+const env = {
+    ...process.env,
+    PYTHONPATH: process.env.PYTHONPATH
+        ? `${packageDir}:${process.env.PYTHONPATH}`
+        : packageDir,
+};
+
+const child = spawn(pythonBin, ['-m', 'osintkit', ...process.argv.slice(2)], {
     stdio: 'inherit',
-    env: process.env
+    cwd: packageDir,
+    env,
 });
 
-python.on('error', () => {
+child.on('error', () => {
     console.error('Error: Python 3.10+ required. Install from https://python.org');
     process.exit(1);
 });
 
-python.on('close', (code) => process.exit(code || 0));
+child.on('close', (code) => process.exit(code || 0));

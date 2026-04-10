@@ -32,11 +32,20 @@ def calculate_risk_score(findings: Dict[str, List]) -> int:
     dark_count = len(findings.get("dark_web", [])) + len(findings.get("paste_sites", []))
     score += min(15, dark_count * 5)
     
-    # Password exposure - typically 0 since we don't have passwords
-    # If data contains count, scale it
-    password_data = findings.get("password_exposure", [])
-    if password_data and isinstance(password_data[0], dict) and password_data[0].get("data", {}).get("count"):
-        pw_count = password_data[0]["data"]["count"]
-        score += min(15, pw_count // 1000)
-    
+    # Password / hash exposure (15 points max)
+    # Covers both: HIBP full API ("password_exposure") and k-anonymity check ("hibp_kanon")
+    pw_score = 0
+    for key in ("password_exposure", "hibp_kanon"):
+        pw_data = findings.get(key, [])
+        if pw_data and isinstance(pw_data[0], dict):
+            count = pw_data[0].get("data", {}).get("count", 0)
+            if count:
+                pw_score = max(pw_score, min(15, count // 1000))
+    # Even a single confirmed exposure without a count is worth some points
+    if pw_score == 0:
+        all_pw = findings.get("password_exposure", []) + findings.get("hibp_kanon", [])
+        if all_pw:
+            pw_score = 5
+    score += pw_score
+
     return min(100, score)

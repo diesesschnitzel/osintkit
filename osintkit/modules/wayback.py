@@ -1,4 +1,22 @@
-"""Wayback Machine CDX API lookup for email domain and username."""
+"""Wayback Machine CDX API lookup for email domain and username.
+
+Mock format for tests
+---------------------
+The CDX API returns JSON: a list of lists where the FIRST row is a header
+and subsequent rows are data. Each row matches the ``fl`` fields requested.
+This module requests ``fl=original,timestamp``, so:
+
+    [
+        ["original", "timestamp"],                          # header row
+        ["http://example.com/page", "20210315120000"],      # data row
+        ["http://example.com/other", "20200101000000"],
+    ]
+
+An empty result (or only the header row) is treated as no findings::
+
+    []          # API returned nothing
+    [["original", "timestamp"]]   # header only — no data
+"""
 
 from typing import Any, Dict, List
 

@@ -121,11 +121,13 @@ def run_setup_wizard():
     config_path = config_dir / "config.yaml"
     with open(config_path, "w") as f:
         yaml.dump(config, f, default_flow_style=False)
-    
+    config_path.chmod(0o600)  # owner read/write only — API keys must not be world-readable
+
     # Create profiles file
     profiles_path = config_dir / "profiles.json"
     if not profiles_path.exists():
         profiles_path.write_text("{}")
+    profiles_path.chmod(0o600)
     
     console.print(f"\n[green]✓[/green] Config saved to: {config_path}")
     console.print("[green]✓[/green] Ready to use!")

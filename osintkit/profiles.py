@@ -54,6 +54,21 @@ class ProfileStore:
         with open(self.store_path, "w") as f:
             json.dump(profiles, f, indent=2, default=str)
     
+    def find_duplicate(self, profile: Profile) -> Optional[Profile]:
+        """Return first existing profile that shares email, username, or phone with the given profile.
+
+        Used before create() to warn the user about potential duplicates.
+        """
+        profiles = self._load()
+        for p in profiles.values():
+            if profile.email and p.get("email") and profile.email.lower() == p["email"].lower():
+                return Profile(**p)
+            if profile.username and p.get("username") and profile.username.lower() == p["username"].lower():
+                return Profile(**p)
+            if profile.phone and p.get("phone") and profile.phone == p["phone"]:
+                return Profile(**p)
+        return None
+
     def create(self, profile: Profile) -> Profile:
         """Create a new profile."""
         profiles = self._load()

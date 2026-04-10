@@ -3,6 +3,7 @@
 import sys
 import json
 import logging
+import threading
 from pathlib import Path
 from typing import Optional
 from datetime import datetime
@@ -14,14 +15,67 @@ from rich.table import Table
 from rich.prompt import Prompt, Confirm
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
+from osintkit import __version__
 from osintkit.scanner import Scanner
 from osintkit.config import load_config, Config, APIKeys
 from osintkit.profiles import Profile, ProfileStore, ScanHistory
 
-app = typer.Typer(help="OSINT CLI for personal digital footprint analysis")
+app = typer.Typer(help="OSINT CLI for personal digital footprint analysis", invoke_without_command=True)
 console = Console()
 store = ProfileStore()
 logger = logging.getLogger(__name__)
+_update_thread = None
+
+
+@app.callback()
+def _startup(ctx: typer.Context):
+    """Start background version check on every invocation."""
+    global _update_thread
+    _update_thread = _start_update_check()
+
+# ---- Version update check ----
+
+_update_available: Optional[str] = None  # Set to newer version string if one exists
+
+
+def _check_for_update_bg():
+    """Check npm registry for a newer version in a background thread (non-blocking)."""
+    global _update_available
+    try:
+        import httpx
+        resp = httpx.get(
+            "https://registry.npmjs.org/osintkit/latest",
+            timeout=3.0,
+            headers={"Accept": "application/json"},
+        )
+        if resp.status_code == 200:
+            latest = resp.json().get("version", "")
+            if latest and latest != __version__:
+                from packaging.version import Version
+                if Version(latest) > Version(__version__):
+                    _update_available = latest
+    except Exception:
+        pass  # Never crash the app over a version check
+
+
+def _start_update_check():
+    """Start the background version check thread."""
+    t = threading.Thread(target=_check_for_update_bg, daemon=True)
+    t.start()
+    return t
+
+
+def _print_update_notice():
+    """Print update notice if a newer version was found."""
+    if _update_available:
+        console.print(Panel(
+            f"[bold cyan]osintkit {_update_available}[/bold cyan] is available "
+            f"[dim](you have {__version__})[/dim]\n"
+            "[dim]Run:[/dim] [bold]npm install -g osintkit[/bold]",
+            title="[bold yellow]⬆  Update available[/bold yellow]",
+            border_style="yellow",
+            padding=(0, 2),
+        ))
 
 
 def _print_ethics_banner():
@@ -123,6 +177,7 @@ api_keys:
   epieos: ""
 """
         config_path.write_text(config_content)
+        config_path.chmod(0o600)  # API keys must not be world-readable
         console.print(f"\n[green]✓[/green] Config saved to {config_path}")
         return True
     
@@ -288,6 +343,7 @@ api_keys:
   epieos: ""
 """
     config_path.write_text(config_content)
+    config_path.chmod(0o600)  # API keys must not be world-readable
     console.print(f"\n[green]✓[/green] Config saved: {config_path}")
 
 
@@ -402,6 +458,9 @@ def list():
     
     console.print(table)
     console.print()
+    if _update_thread:
+        _update_thread.join(timeout=4)
+    _print_update_notice()
 
 
 @app.command()
@@ -440,6 +499,7 @@ def refresh(profile_ref: str = typer.Argument(None, help="Profile ID or name")):
     )
     store.add_scan_result(profile.id, scan_record)
     console.print(f"\n[green]✓[/green] Scan saved to profile history")
+    _print_update_notice()
 
 
 @app.command()
@@ -605,8 +665,10 @@ def delete(profile_ref: str = typer.Argument(None, help="Profile ID or name")):
 @app.command()
 def version():
     """Show version."""
-    from osintkit import __version__
+    if _update_thread:
+        _update_thread.join(timeout=4)
     console.print(f"osintkit v{__version__}")
+    _print_update_notice()
 
 
 if __name__ == "__main__":
