@@ -22,11 +22,16 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Python package
-        run: pip install -e ".[dev]" || pip install -e .
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-httpx
 
       - name: Run tests
         run: python -m pytest tests/ -v -m "not live" --tb=short
+        env:
+          PYTHONPATH: .
 
       - name: Publish to NPM
         run: npm publish --access public
