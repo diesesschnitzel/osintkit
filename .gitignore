@@ -44,8 +44,18 @@ Thumbs.db
 *.swp
 *.swo
 
-# Claude Code
+# Claude Code / AI tooling
 .claude/
+.claude-flow/
+
+# Internal planning docs (never publish)
+01_PRD.md
+02_Architecture.md
+03_AI_Rules.md
+04_Build_Plan.md
+STATUS.md
+TEST_REPORT.md
+MASTER_TEST_REPORT.md
 
 # Test output
 /tmp/
