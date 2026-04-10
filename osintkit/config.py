@@ -32,6 +32,19 @@ class Config(BaseModel):
     api_keys: APIKeys = Field(default_factory=APIKeys)
 
 
+def save_config(config: Config, config_path: Path) -> None:
+    """Save configuration to YAML file."""
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    data = {
+        "output_dir": config.output_dir,
+        "timeout_seconds": config.timeout_seconds,
+        "api_keys": config.api_keys.model_dump(),
+    }
+    with open(config_path, "w") as f:
+        yaml.dump(data, f, default_flow_style=False)
+    config_path.chmod(0o600)
+
+
 def load_config(config_path: Path) -> Config:
     """Load configuration from YAML file.
 

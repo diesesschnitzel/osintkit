@@ -33,7 +33,9 @@ osintkit open       # View profile details + open latest report
 | `osintkit refresh [id]` | Re-run scan for a profile |
 | `osintkit open [id]` | Show profile details and open latest report |
 | `osintkit export [id]` | Export as JSON or Markdown |
-| `osintkit setup` | Configure API keys |
+| `osintkit setup` | Configure API keys interactively (preserves existing keys) |
+| `osintkit config set-key <key> <value>` | Update a single API key without touching others |
+| `osintkit config show` | Show which API keys are set (values hidden) |
 | `osintkit delete [id]` | Delete a profile |
 | `osintkit version` | Show version |
 
@@ -56,19 +58,19 @@ osintkit open       # View profile details + open latest report
 | Data brokers | name/email | Google CSE broker scan |
 | Dark web | email | Ahmia / public index |
 | Breach lookup | email | BreachDirectory |
+| GitHub | username | Public profile (always runs, no key needed) |
 
-### Stage 2 — Optional free API keys, runs first when configured
+### Stage 2 — Optional API keys, unlocks extra data sources
 
-| Service | Input | Free Tier |
-|---------|-------|-----------|
-| HaveIBeenPwned | email | Free w/ key |
+| Service | Input | Tier |
+|---------|-------|------|
+| HaveIBeenPwned | email | Paid ($3.50/month) |
 | LeakCheck | email/phone/user | Free tier |
-| NumVerify | phone | 100/month |
-| Hunter.io | name + domain | 50/month |
-| GitHub API | username | 5000/hr w/ key |
-| SecurityTrails | domain | Free tier |
+| NumVerify | phone | 100/month free |
+| Hunter.io | email | 25/month free |
+| SecurityTrails | domain | Paid |
 
-Stage 2 always runs first when a key is configured. If rate-limited or key missing, falls back to Stage 1 automatically.
+Stage 2 modules only run when a key is configured. If rate-limited, the scan continues gracefully with Stage 1 results — rate-limited modules are shown as yellow, not red.
 
 ## Output
 
@@ -81,23 +83,25 @@ Risk score is 0–100 based on breach exposure, social footprint, data broker li
 
 ## API Keys (All Optional)
 
-Run `osintkit setup` to configure. All keys are optional — the tool works without any of them.
+Keys are stored in `~/.osintkit/config.yaml` (permissions: 600).
 
-```
-~/.osintkit/config.yaml
+```bash
+osintkit config set-key hunter YOUR_KEY    # add or update one key
+osintkit config show                        # see which keys are set
+osintkit setup                              # interactive wizard (preserves existing keys)
 ```
 
-| Service | Get key at |
-|---------|-----------|
-| HaveIBeenPwned | haveibeenpwned.com/API/Key |
-| LeakCheck | leakcheck.io |
-| NumVerify | numverify.com |
-| Hunter.io | hunter.io |
-| GitHub | github.com/settings/tokens |
-| Intelbase | intelbase.is |
-| BreachDirectory | rapidapi.com |
-| Google CSE | developers.google.com/custom-search |
-| SecurityTrails | securitytrails.com |
+| Service | Where to get it | Free? |
+|---------|----------------|-------|
+| HaveIBeenPwned | haveibeenpwned.com/API/Key | Paid ($3.50/mo) |
+| LeakCheck | leakcheck.io | Free tier |
+| NumVerify | numverify.com | 100 req/month free |
+| Hunter.io | hunter.io | 25 req/month free |
+| GitHub | github.com/settings/tokens | Free (raises rate limit) |
+| Intelbase | intelbase.is | 100 req/month free |
+| BreachDirectory | rapidapi.com (search "BreachDirectory") | 50 req/day free |
+| Google CSE | developers.google.com/custom-search | 100 req/day free |
+| SecurityTrails | securitytrails.com | Paid |
 
 ## Run from Source
 

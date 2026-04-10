@@ -108,19 +108,29 @@ def run_setup_wizard():
             "google_cse_cx": "",
         }
     
-    # Save config
+    # Save config — merge with existing keys so we never wipe anything
     config_dir = Path.home() / ".osintkit"
     config_dir.mkdir(parents=True, exist_ok=True)
-    
-    config = {
-        "output_dir": "~/osint-results",
-        "timeout_seconds": 120,
-        "api_keys": api_keys,
-    }
-    
     config_path = config_dir / "config.yaml"
+
+    if config_path.exists():
+        with open(config_path) as f:
+            existing = yaml.safe_load(f) or {}
+        existing_keys = existing.get("api_keys", {})
+    else:
+        existing = {"output_dir": "~/osint-results", "timeout_seconds": 120}
+        existing_keys = {}
+
+    # Only overwrite keys the user actually provided (non-empty)
+    for k, v in api_keys.items():
+        if v:
+            existing_keys[k] = v
+        elif k not in existing_keys:
+            existing_keys[k] = ""
+
+    existing["api_keys"] = existing_keys
     with open(config_path, "w") as f:
-        yaml.dump(config, f, default_flow_style=False)
+        yaml.dump(existing, f, default_flow_style=False)
     config_path.chmod(0o600)  # owner read/write only — API keys must not be world-readable
 
     # Create profiles file
@@ -155,5 +165,6 @@ def update_api_key(key_name: str, key_value: str):
     
     with open(config_path, "w") as f:
         yaml.dump(config, f, default_flow_style=False)
-    
+    config_path.chmod(0o600)
+
     console.print(f"[green]✓[/green] Updated {key_name}")

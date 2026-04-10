@@ -3,72 +3,335 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>osintkit Report</title>
+    <title>osintkit Report — {{ inputs.name or inputs.email or inputs.username or 'Unknown' }}</title>
     <style>
-        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
-        h1 { color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
-        .risk-gauge { padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }
-        .risk-high { background: #fee; color: #c00; }
-        .risk-medium { background: #ffe; color: #960; }
-        .risk-low { background: #efe; color: #060; }
-        .module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 20px 0; }
-        .module-card { padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
-        .module-done { background: #efe; }
-        .module-failed { background: #fee; }
-        .module-skipped { background: #eee; color: #888; }
-        .findings-section { margin: 20px 0; }
-        .finding-item { padding: 10px; border-bottom: 1px solid #eee; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #222; }
+        .container { max-width: 900px; margin: 0 auto; padding: 30px 20px; }
+
+        /* Header */
+        .header { background: #1a1a2e; color: white; padding: 30px; border-radius: 10px; margin-bottom: 24px; }
+        .header h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 4px; opacity: 0.7; }
+        .header .target { font-size: 1.8rem; font-weight: 700; margin-bottom: 12px; }
+        .header .meta { font-size: 0.85rem; opacity: 0.6; }
+
+        /* Risk score */
+        .risk-block { border-radius: 10px; padding: 24px 30px; margin-bottom: 24px; display: flex; align-items: center; gap: 30px; }
+        .risk-high   { background: #fff0f0; border: 2px solid #e53e3e; }
+        .risk-medium { background: #fffbeb; border: 2px solid #d69e2e; }
+        .risk-low    { background: #f0fff4; border: 2px solid #38a169; }
+        .risk-score  { font-size: 3.5rem; font-weight: 800; line-height: 1; }
+        .risk-high   .risk-score  { color: #c53030; }
+        .risk-medium .risk-score  { color: #b7791f; }
+        .risk-low    .risk-score  { color: #276749; }
+        .risk-label  { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
+        .risk-desc   { font-size: 0.9rem; opacity: 0.8; max-width: 500px; }
+
+        /* Score bar */
+        .score-bar-wrap { flex: 1; }
+        .score-bar-bg   { background: #e2e8f0; border-radius: 999px; height: 12px; overflow: hidden; margin-top: 8px; }
+        .score-bar-fill { height: 100%; border-radius: 999px; transition: width 0.5s; }
+        .risk-high   .score-bar-fill { background: #e53e3e; }
+        .risk-medium .score-bar-fill { background: #d69e2e; }
+        .risk-low    .score-bar-fill { background: #38a169; }
+
+        /* Risk breakdown */
+        .breakdown { background: white; border-radius: 10px; padding: 20px 24px; margin-bottom: 24px; }
+        .breakdown h2 { font-size: 1rem; font-weight: 600; margin-bottom: 14px; color: #555; text-transform: uppercase; letter-spacing: 0.05em; }
+        .breakdown-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+        .breakdown-item { background: #f7f7f7; border-radius: 8px; padding: 12px; text-align: center; }
+        .breakdown-item .bi-val { font-size: 1.6rem; font-weight: 700; color: #2d3748; }
+        .breakdown-item .bi-label { font-size: 0.78rem; color: #718096; margin-top: 2px; }
+
+        /* Section card */
+        .card { background: white; border-radius: 10px; padding: 24px; margin-bottom: 20px; }
+        .card h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 8px; }
+        .badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+        .badge-found  { background: #fed7d7; color: #c53030; }
+        .badge-none   { background: #e2e8f0; color: #4a5568; }
+        .badge-failed { background: #feebc8; color: #c05621; }
+
+        /* Finding items */
+        .finding { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+        .finding-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+        .finding-type { font-weight: 600; font-size: 0.95rem; }
+        .finding-source { font-size: 0.8rem; color: #718096; background: #edf2f7; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+        .finding-explanation { font-size: 0.88rem; color: #4a5568; margin-bottom: 10px; line-height: 1.5; }
+        .finding-data { background: #f7fafc; border-radius: 6px; padding: 10px 14px; font-size: 0.85rem; }
+        .finding-data table { width: 100%; border-collapse: collapse; }
+        .finding-data td { padding: 3px 8px 3px 0; vertical-align: top; }
+        .finding-data td:first-child { color: #718096; white-space: nowrap; padding-right: 16px; width: 1%; font-size: 0.82rem; }
+        .finding-data td a { color: #3182ce; word-break: break-all; }
+        .finding-url { margin-top: 8px; font-size: 0.85rem; }
+        .finding-url a { color: #3182ce; }
+
+        /* Module grid */
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+        .module-card { border-radius: 8px; padding: 12px 14px; border: 1px solid transparent; }
+        .module-card .mc-name { font-weight: 600; font-size: 0.88rem; margin-bottom: 3px; }
+        .module-card .mc-detail { font-size: 0.8rem; opacity: 0.8; }
+        .mc-done    { background: #f0fff4; border-color: #9ae6b4; }
+        .mc-failed  { background: #fffaf0; border-color: #fbd38d; }
+        .mc-skipped { background: #f7fafc; border-color: #e2e8f0; color: #a0aec0; }
+
+        /* Recommendations */
+        .rec-item { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid #f0f0f0; }
+        .rec-item:last-child { border-bottom: none; }
+        .rec-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
+        .rec-title { font-weight: 600; font-size: 0.92rem; margin-bottom: 3px; }
+        .rec-body  { font-size: 0.87rem; color: #4a5568; line-height: 1.5; }
+
+        /* Inputs summary */
+        .inputs-row { display: flex; flex-wrap: wrap; gap: 20px; }
+        .input-item .input-label { font-size: 0.78rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; }
+        .input-item .input-val   { font-size: 0.95rem; font-weight: 500; }
+
+        .empty-state { color: #a0aec0; font-size: 0.9rem; text-align: center; padding: 20px; }
     </style>
 </head>
 <body>
-    <h1>osintkit OSINT Report</h1>
-    <p><strong>Scan Date:</strong> {{ scan_date }}</p>
-    <p><strong>Target:</strong> {{ inputs.name or inputs.email or inputs.username or inputs.phone or 'Unknown' }}</p>
-    
+<div class="container">
+
+    <!-- Header -->
+    <div class="header">
+        <h1>osintkit · OSINT Report</h1>
+        <div class="target">{{ inputs.name or inputs.email or inputs.username or inputs.phone or 'Unknown Target' }}</div>
+        <div class="meta">Scanned: {{ scan_date[:19]|replace('T', ' ') if scan_date else '—' }}</div>
+    </div>
+
+    <!-- Target info -->
+    <div class="card">
+        <h2>Target Information</h2>
+        <div class="inputs-row">
+            {% if inputs.name %}
+            <div class="input-item"><div class="input-label">Name</div><div class="input-val">{{ inputs.name }}</div></div>
+            {% endif %}
+            {% if inputs.email %}
+            <div class="input-item"><div class="input-label">Email</div><div class="input-val">{{ inputs.email }}</div></div>
+            {% endif %}
+            {% if inputs.username %}
+            <div class="input-item"><div class="input-label">Username</div><div class="input-val">{{ inputs.username }}</div></div>
+            {% endif %}
+            {% if inputs.phone %}
+            <div class="input-item"><div class="input-label">Phone</div><div class="input-val">{{ inputs.phone }}</div></div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Risk score -->
     {% set score = risk_score %}
     {% if score >= 70 %}
-        <div class="risk-gauge risk-high">
+        <div class="risk-block risk-high">
+        {% set risk_label = "High Risk" %}
+        {% set risk_desc = "Significant personal data is publicly exposed. Multiple findings across breaches, social media, and data brokers. Review and act on recommendations below." %}
     {% elif score >= 40 %}
-        <div class="risk-gauge risk-medium">
+        <div class="risk-block risk-medium">
+        {% set risk_label = "Medium Risk" %}
+        {% set risk_desc = "Some personal data is publicly accessible. A moderate digital footprint was found. Consider reviewing the findings and taking action on the most sensitive ones." %}
     {% else %}
-        <div class="risk-gauge risk-low">
+        <div class="risk-block risk-low">
+        {% set risk_label = "Low Risk" %}
+        {% set risk_desc = "Limited public exposure found. Your digital footprint appears small. Review any findings below to make sure nothing unexpected was discovered." %}
     {% endif %}
-        <h2>Risk Score: {{ score }}/100</h2>
-    </div>
-    
-    <h2>Module Status</h2>
-    <div class="module-grid">
-        {% for module_name, module_data in modules.items() %}
-            <div class="module-card module-{{ module_data.status }}">
-                <strong>{{ module_name }}</strong><br>
-                {% if module_data.status == 'done' %}
-                    ✓ {{ module_data.count }} findings
-                {% elif module_data.status == 'failed' %}
-                    ✗ {{ module_data.error }}
-                {% else %}
-                    — skipped
-                {% endif %}
+        <div>
+            <div class="risk-score">{{ score }}</div>
+            <div style="font-size:0.8rem;opacity:0.6;margin-top:2px;">out of 100</div>
+        </div>
+        <div style="flex:1">
+            <div class="risk-label">{{ risk_label }}</div>
+            <div class="risk-desc">{{ risk_desc }}</div>
+            <div class="score-bar-wrap">
+                <div class="score-bar-bg"><div class="score-bar-fill" style="width:{{ score }}%"></div></div>
             </div>
+        </div>
+    </div>
+
+    <!-- Score breakdown -->
+    {% set breach_count   = findings.get('breach_exposure', [])|length %}
+    {% set social_count   = (findings.get('social_profiles', [])|length) + (findings.get('sherlock', [])|length) %}
+    {% set broker_count   = findings.get('data_brokers', [])|length %}
+    {% set dark_count     = (findings.get('dark_web', [])|length) + (findings.get('paste_sites', [])|length) %}
+    {% set pw_count       = (findings.get('password_exposure', [])|length) + (findings.get('hibp_kanon', [])|length) %}
+    {% set total_findings = findings.values()|map('length')|sum %}
+
+    <div class="breakdown">
+        <h2>Score Breakdown</h2>
+        <div class="breakdown-grid">
+            <div class="breakdown-item">
+                <div class="bi-val">{{ total_findings }}</div>
+                <div class="bi-label">Total findings</div>
+            </div>
+            <div class="breakdown-item">
+                <div class="bi-val">{{ breach_count }}</div>
+                <div class="bi-label">Data breaches</div>
+            </div>
+            <div class="breakdown-item">
+                <div class="bi-val">{{ social_count }}</div>
+                <div class="bi-label">Social profiles</div>
+            </div>
+            <div class="breakdown-item">
+                <div class="bi-val">{{ broker_count }}</div>
+                <div class="bi-label">Data broker listings</div>
+            </div>
+            <div class="breakdown-item">
+                <div class="bi-val">{{ dark_count }}</div>
+                <div class="bi-label">Dark web / paste sites</div>
+            </div>
+            <div class="breakdown-item">
+                <div class="bi-val">{{ pw_count }}</div>
+                <div class="bi-label">Password exposures</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Findings by module -->
+    {% set type_explanations = {
+        'social_profile':   'An account linked to this username was found on a public platform. This means the username is registered and potentially active there.',
+        'email_profile':    'This email address is linked to a public profile. Other people can potentially find your name, photo, or other info via this address.',
+        'email_account':    'This email was used to register on this platform. The registration is detectable without logging in.',
+        'password_exposure':'This email or password has appeared in a known data breach. If you reuse passwords, those accounts may be at risk.',
+        'breach':           'Your email or data was found in a breach database. The leaked data may include passwords, personal info, or other sensitive fields.',
+        'web_archive':      'A historical snapshot of content related to this target was found in web archives. Old pages may contain data you thought was deleted.',
+        'certificate':      'An SSL certificate was issued for a domain linked to this target. This can reveal subdomains, services, or infrastructure.',
+        'phone_info':       'Technical information about this phone number was retrieved. This includes carrier, region, and line type — without contacting the number.',
+        'paste':            'Content containing this target\'s data was found on a paste site. Paste sites are often used to dump leaked credentials or personal data.',
+        'dark_web':         'A reference to this target was found on a dark web index or public darknet search. This may indicate leaked data or illicit activity.',
+        'data_broker':      'This target appears in a data broker listing. Data brokers collect and sell personal information including name, address, and relatives.',
+        'web_presence':     'The email domain or username was found in web crawl data, subdomains, or public web content.',
+    } %}
+
+    {% for module_name, module_findings in findings.items() %}
+    {% if module_findings %}
+    <div class="card">
+        <h2>
+            {{ module_name | replace('_', ' ') | title }}
+            <span class="badge badge-found">{{ module_findings|length }} found</span>
+        </h2>
+        {% for finding in module_findings %}
+        <div class="finding">
+            <div class="finding-header">
+                <div class="finding-type">{{ finding.type | replace('_', ' ') | title }}</div>
+                <div class="finding-source">via {{ finding.source }}</div>
+            </div>
+            {% if finding.type in type_explanations %}
+            <div class="finding-explanation">{{ type_explanations[finding.type] }}</div>
+            {% endif %}
+            {% if finding.data %}
+            <div class="finding-data">
+                <table>
+                {% for key, val in finding.data.items() %}
+                {% if val and val != '' and val != 'unknown' and key != 'note' %}
+                <tr>
+                    <td>{{ key | replace('_', ' ') }}</td>
+                    <td>
+                        {% if val is string and val.startswith('http') %}
+                            <a href="{{ val }}" target="_blank">{{ val }}</a>
+                        {% else %}
+                            {{ val }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+                {% if finding.data.get('note') %}
+                <tr><td colspan="2" style="color:#718096;font-style:italic;padding-top:6px;">{{ finding.data.note }}</td></tr>
+                {% endif %}
+                </table>
+            </div>
+            {% endif %}
+            {% if finding.url %}
+            <div class="finding-url">🔗 <a href="{{ finding.url }}" target="_blank">{{ finding.url }}</a></div>
+            {% endif %}
+        </div>
         {% endfor %}
     </div>
-    
-    <h2>Findings</h2>
-    {% for module_name, module_findings in findings.items() %}
-        {% if module_findings %}
-            <div class="findings-section">
-                <h3>{{ module_name }} ({{ module_findings|length }})</h3>
-                {% for finding in module_findings %}
-                    <div class="finding-item">
-                        <strong>{{ finding.type }}</strong> 
-                        <span style="color:#888">via {{ finding.source }}</span>
-                        {% if finding.url %}
-                            <a href="{{ finding.url }}" target="_blank">[link]</a>
-                        {% endif %}
-                        <br><small>Confidence: {{ finding.confidence }}</small>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
+    {% endif %}
     {% endfor %}
+
+    <!-- Recommendations -->
+    {% if total_findings > 0 %}
+    <div class="card">
+        <h2>What You Should Do</h2>
+        {% if pw_count > 0 %}
+        <div class="rec-item">
+            <div class="rec-icon">🔑</div>
+            <div>
+                <div class="rec-title">Change passwords for affected accounts</div>
+                <div class="rec-body">Your email appeared in one or more breach databases. Change the password for any account using this email, especially if you reuse passwords. Use a password manager to keep them unique.</div>
+            </div>
+        </div>
+        {% endif %}
+        {% if breach_count > 0 %}
+        <div class="rec-item">
+            <div class="rec-icon">🛡️</div>
+            <div>
+                <div class="rec-title">Enable two-factor authentication</div>
+                <div class="rec-body">Your data was found in breach records. Enable 2FA on your email, banking, and any other important accounts to prevent unauthorized access even if passwords are known.</div>
+            </div>
+        </div>
+        {% endif %}
+        {% if broker_count > 0 %}
+        <div class="rec-item">
+            <div class="rec-icon">🗑️</div>
+            <div>
+                <div class="rec-title">Request removal from data brokers</div>
+                <div class="rec-body">Your information appears in data broker listings. You can request removal directly from each broker. Services like DeleteMe or Incogni can automate this across hundreds of brokers.</div>
+            </div>
+        </div>
+        {% endif %}
+        {% if social_count > 0 %}
+        <div class="rec-item">
+            <div class="rec-icon">👤</div>
+            <div>
+                <div class="rec-title">Review your social media privacy settings</div>
+                <div class="rec-body">{{ social_count }} social profile(s) were found. Check the privacy settings on each platform — restrict who can see your posts, contact info, and friend/follower lists.</div>
+            </div>
+        </div>
+        {% endif %}
+        {% if dark_count > 0 %}
+        <div class="rec-item">
+            <div class="rec-icon">⚠️</div>
+            <div>
+                <div class="rec-title">Monitor for identity fraud</div>
+                <div class="rec-body">References to your data were found on dark web indexes or paste sites. Consider placing a credit freeze with the major credit bureaus and setting up identity monitoring alerts.</div>
+            </div>
+        </div>
+        {% endif %}
+        <div class="rec-item">
+            <div class="rec-icon">🔄</div>
+            <div>
+                <div class="rec-title">Re-scan periodically</div>
+                <div class="rec-body">Your digital footprint changes over time as new breaches occur and data spreads. Run <code>osintkit refresh</code> every few months to stay up to date.</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Module status -->
+    <div class="card">
+        <h2>Modules Run</h2>
+        <div class="module-grid">
+            {% for module_name, module_data in modules.items() %}
+            <div class="module-card mc-{{ module_data.status }}">
+                <div class="mc-name">{{ module_name | replace('_', ' ') | title }}</div>
+                <div class="mc-detail">
+                    {% if module_data.status == 'done' %}
+                        ✓ {{ module_data.count }} finding{{ 's' if module_data.count != 1 else '' }}
+                    {% elif module_data.status == 'failed' %}
+                        ⚠ {{ module_data.error | truncate(40) }}
+                    {% else %}
+                        — skipped
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div style="text-align:center;color:#a0aec0;font-size:0.8rem;margin-top:20px;padding-bottom:20px;">
+        Generated by osintkit · Only use on targets you have permission to investigate · GDPR applies to EU subjects
+    </div>
+
+</div>
 </body>
 </html>

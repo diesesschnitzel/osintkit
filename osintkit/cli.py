@@ -17,8 +17,9 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from osintkit import __version__
 from osintkit.scanner import Scanner
-from osintkit.config import load_config, Config, APIKeys
+from osintkit.config import load_config, save_config, Config, APIKeys
 from osintkit.profiles import Profile, ProfileStore, ScanHistory
+from osintkit.setup import update_api_key
 
 app = typer.Typer(help="OSINT CLI for personal digital footprint analysis", invoke_without_command=True)
 console = Console()
@@ -291,20 +292,15 @@ def run_scan_for_profile(profile: Profile) -> dict:
 
 @app.command()
 def setup():
-    """Configure API keys."""
+    """Configure API keys. Existing keys are preserved unless a new value is entered."""
     config_path = Path.home() / ".osintkit" / "config.yaml"
-    
-    if config_path.exists():
-        console.print(f"\n[yellow]Config already exists: {config_path}[/yellow]")
-        if not Confirm.ask("Overwrite?"):
-            return
-    
+    existing = load_config(config_path)
+
     console.print("\n[bold cyan]═══ API Key Setup ═══[/bold cyan]\n")
-    console.print("Enter your API keys (press Enter to skip).\n")
-    
-    keys = {}
+    console.print("Press [bold]Enter[/bold] to keep an existing key. Type a new value to update it.\n")
+
     api_key_list = [
-        ("hibp", "HaveIBeenPwned (hibp)", "https://haveibeenpwned.com/API/Key"),
+        ("hibp", "HaveIBeenPwned", "https://haveibeenpwned.com/API/Key"),
         ("breachdirectory", "BreachDirectory", "https://rapidapi.com/"),
         ("leakcheck", "LeakCheck", "https://leakcheck.io/"),
         ("intelbase", "Intelbase", "https://intelbase.is/"),
@@ -316,35 +312,60 @@ def setup():
         ("github", "GitHub Personal Access Token", "https://github.com/settings/tokens"),
         ("securitytrails", "SecurityTrails", "https://securitytrails.com"),
     ]
-    
-    for key_name, label, url in api_key_list:
-        hint = f" ({url})" if url else ""
-        value = Prompt.ask(f"{label}{hint}", default="")
-        keys[key_name] = value.strip()
-    
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-    config_content = f"""# osintkit Configuration
-output_dir: ~/osint-results
-timeout_seconds: 120
 
-api_keys:
-  hibp: "{keys.get('hibp', '')}"
-  breachdirectory: "{keys.get('breachdirectory', '')}"
-  leakcheck: "{keys.get('leakcheck', '')}"
-  intelbase: "{keys.get('intelbase', '')}"
-  google_cse_key: "{keys.get('google_cse_key', '')}"
-  google_cse_cx: "{keys.get('google_cse_cx', '')}"
-  numverify: "{keys.get('numverify', '')}"
-  emailrep: "{keys.get('emailrep', '')}"
-  resend: ""
-  hunter: "{keys.get('hunter', '')}"
-  github: "{keys.get('github', '')}"
-  securitytrails: "{keys.get('securitytrails', '')}"
-  epieos: ""
-"""
-    config_path.write_text(config_content)
-    config_path.chmod(0o600)  # API keys must not be world-readable
+    keys_dict = existing.api_keys.model_dump()
+
+    for key_name, label, url in api_key_list:
+        current = keys_dict.get(key_name, "")
+        status = "[green][set][/green]" if current else "[dim][not set][/dim]"
+        hint = f" ({url})" if url else ""
+        value = Prompt.ask(f"  {status} {label}{hint}", default="")
+        if value.strip():
+            keys_dict[key_name] = value.strip()
+
+    updated = Config(
+        output_dir=existing.output_dir,
+        timeout_seconds=existing.timeout_seconds,
+        api_keys=APIKeys(**keys_dict),
+    )
+    save_config(updated, config_path)
     console.print(f"\n[green]✓[/green] Config saved: {config_path}")
+
+
+config_app = typer.Typer(help="Manage osintkit configuration.")
+app.add_typer(config_app, name="config")
+
+
+@config_app.command("set-key")
+def config_set_key(
+    key: str = typer.Argument(..., help="API key name (e.g. github, hunter)"),
+    value: str = typer.Argument(..., help="The API key value"),
+):
+    """Update a single API key without touching others."""
+    valid_keys = set(APIKeys.model_fields.keys())
+    if key not in valid_keys:
+        console.print(f"[red]Unknown key '{key}'.[/red]")
+        console.print(f"Valid keys: {', '.join(sorted(valid_keys))}")
+        raise typer.Exit(1)
+    update_api_key(key, value)
+
+
+@config_app.command("show")
+def config_show():
+    """Show which API keys are set (values are not shown)."""
+    config_path = Path.home() / ".osintkit" / "config.yaml"
+    cfg = load_config(config_path)
+    keys_dict = cfg.api_keys.model_dump()
+
+    table = Table(title="API Keys", show_header=True)
+    table.add_column("Key", style="cyan")
+    table.add_column("Status")
+
+    for key_name in sorted(keys_dict.keys()):
+        status = "[green]set[/green]" if keys_dict[key_name] else "[dim]not set[/dim]"
+        table.add_row(key_name, status)
+
+    console.print(table)
 
 
 @app.command()

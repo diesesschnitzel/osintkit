@@ -4,6 +4,8 @@ from typing import Dict, List
 
 import httpx
 
+from osintkit.modules import RateLimitError, InvalidKeyError
+
 
 async def run(inputs: dict, api_key: str) -> List[Dict]:
     """Verify an email address via Hunter.io email-verifier endpoint.
@@ -30,9 +32,9 @@ async def run(inputs: dict, api_key: str) -> List[Dict]:
             )
 
         if response.status_code == 429:
-            raise Exception("429 rate limited")
+            raise RateLimitError("Hunter.io rate limit reached")
         if response.status_code in (401, 403):
-            raise Exception("401 invalid key")
+            raise InvalidKeyError("Hunter.io API key invalid or unauthorized")
 
         data = response.json()
         result = data.get("data", {})
@@ -58,7 +60,7 @@ async def run(inputs: dict, api_key: str) -> List[Dict]:
             "url": None,
         }]
 
-    except Exception as e:
-        if "429" in str(e) or "401" in str(e):
-            raise
+    except (RateLimitError, InvalidKeyError):
+        raise
+    except Exception:
         return []

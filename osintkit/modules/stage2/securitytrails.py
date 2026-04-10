@@ -4,6 +4,8 @@ from typing import Dict, List
 
 import httpx
 
+from osintkit.modules import RateLimitError, InvalidKeyError
+
 
 async def run(inputs: dict, api_key: str) -> List[Dict]:
     """Enumerate subdomains for the target's email domain via SecurityTrails API.
@@ -35,9 +37,9 @@ async def run(inputs: dict, api_key: str) -> List[Dict]:
             )
 
         if response.status_code == 429:
-            raise Exception("429 rate limited")
+            raise RateLimitError("SecurityTrails rate limit reached")
         if response.status_code in (401, 403):
-            raise Exception("401 invalid key")
+            raise InvalidKeyError("SecurityTrails API key invalid or unauthorized")
 
         data = response.json()
         subdomains = data.get("subdomains", [])
@@ -59,7 +61,7 @@ async def run(inputs: dict, api_key: str) -> List[Dict]:
             })
         return findings
 
-    except Exception as e:
-        if "429" in str(e) or "401" in str(e):
-            raise
+    except (RateLimitError, InvalidKeyError):
+        raise
+    except Exception:
         return []

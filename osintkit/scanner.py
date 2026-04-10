@@ -8,6 +8,7 @@ from rich.console import Console
 from rich.progress import Progress
 
 from osintkit.config import Config
+from osintkit.modules import RateLimitError, InvalidKeyError
 from osintkit.output.json_writer import write_json
 from osintkit.output.html_writer import write_html
 from osintkit.output.md_writer import write_md
@@ -42,6 +43,7 @@ class Scanner:
             ("wayback", self._run_wayback, "Wayback Machine"),
             ("phone_info", self._run_phone_info, "Phone analysis"),
             ("hibp_kanon", self._run_hibp_kanon, "Password k-anonymity check"),
+            ("github_api", self._run_stage2_github, "GitHub profile"),  # always runs; token optional
         ]
 
         # Stage 2 modules — only included when corresponding API key is set
@@ -50,7 +52,6 @@ class Scanner:
             ("leakcheck", api_keys.leakcheck, self._run_stage2_leakcheck, "LeakCheck breach lookup"),
             ("hunter", api_keys.hunter, self._run_stage2_hunter, "Hunter email verify"),
             ("numverify", api_keys.numverify, self._run_stage2_numverify, "NumVerify phone"),
-            ("github_api", api_keys.github, self._run_stage2_github, "GitHub profile"),
             (
                 "securitytrails",
                 api_keys.securitytrails,
@@ -166,6 +167,12 @@ class Scanner:
                 result = await func(inputs)
                 findings["modules"][name] = {"status": "done", "count": len(result)}
                 findings["findings"][name] = result
+            except RateLimitError as e:
+                findings["modules"][name] = {"status": "rate_limited", "error": str(e)}
+                findings["findings"][name] = []
+            except InvalidKeyError as e:
+                findings["modules"][name] = {"status": "invalid_key", "error": str(e)}
+                findings["findings"][name] = []
             except Exception as e:
                 findings["modules"][name] = {"status": "failed", "error": str(e)}
                 findings["findings"][name] = []
@@ -203,13 +210,29 @@ class Scanner:
                     completed=True,
                     description=f"[green]done {task_info['desc']} ({len(result)})[/green]",
                 )
+            except RateLimitError as e:
+                findings["modules"][name] = {"status": "rate_limited", "error": str(e)}
+                findings["findings"][name] = []
+                progress.update(
+                    task_info["task_id"],
+                    completed=True,
+                    description=f"[yellow]rate limited {task_info['desc']}[/yellow]",
+                )
+            except InvalidKeyError as e:
+                findings["modules"][name] = {"status": "invalid_key", "error": str(e)}
+                findings["findings"][name] = []
+                progress.update(
+                    task_info["task_id"],
+                    completed=True,
+                    description=f"[yellow]invalid key {task_info['desc']}[/yellow]",
+                )
             except Exception as e:
                 findings["modules"][name] = {"status": "failed", "error": str(e)}
                 findings["findings"][name] = []
                 progress.update(
                     task_info["task_id"],
                     completed=True,
-                    description=f"[yellow]failed {task_info['desc']}[/yellow]",
+                    description=f"[red]failed {task_info['desc']}[/red]",
                 )
 
         async def main():

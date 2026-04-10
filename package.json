@@ -1,6 +1,6 @@
 {
   "name": "osintkit",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "OSINT CLI for personal digital footprint analysis",
   "bin": {
     "osintkit": "./bin/osintkit.js"
@@ -24,8 +24,16 @@
     "cli",
     "recon"
   ],
-  "author": "",
+  "author": "diesesschnitzel",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/diesesschnitzel/osintkit.git"
+  },
+  "homepage": "https://github.com/diesesschnitzel/osintkit#api-keys-all-optional",
+  "bugs": {
+    "url": "https://github.com/diesesschnitzel/osintkit/issues"
+  },
   "engines": {
     "node": ">=16",
     "python": ">=3.10"

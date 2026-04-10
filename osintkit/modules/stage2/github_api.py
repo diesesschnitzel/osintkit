@@ -4,6 +4,8 @@ from typing import Dict, List
 
 import httpx
 
+from osintkit.modules import RateLimitError, InvalidKeyError
+
 
 async def run(inputs: dict, api_key: str) -> List[Dict]:
     """Look up a GitHub user profile via the GitHub REST API.
@@ -23,19 +25,20 @@ async def run(inputs: dict, api_key: str) -> List[Dict]:
         return []
 
     try:
+        headers = {"Accept": "application/vnd.github.v3+json"}
+        if api_key:
+            headers["Authorization"] = f"token {api_key}"
+
         async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0)) as client:
             response = await client.get(
                 f"https://api.github.com/users/{username}",
-                headers={
-                    "Authorization": f"token {api_key}",
-                    "Accept": "application/vnd.github.v3+json",
-                },
+                headers=headers,
             )
 
         if response.status_code == 429:
-            raise Exception("429 rate limited")
+            raise RateLimitError("GitHub API rate limit reached")
         if response.status_code in (401, 403):
-            raise Exception("401 invalid key")
+            raise InvalidKeyError("GitHub token invalid or unauthorized")
         if response.status_code == 404:
             return []
 
@@ -59,7 +62,7 @@ async def run(inputs: dict, api_key: str) -> List[Dict]:
             "url": data.get("html_url"),
         }]
 
-    except Exception as e:
-        if "429" in str(e) or "401" in str(e):
-            raise
+    except (RateLimitError, InvalidKeyError):
+        raise
+    except Exception:
         return []
