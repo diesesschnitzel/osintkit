@@ -70,9 +70,12 @@
         .module-card { border-radius: 8px; padding: 12px 14px; border: 1px solid transparent; }
         .module-card .mc-name { font-weight: 600; font-size: 0.88rem; margin-bottom: 3px; }
         .module-card .mc-detail { font-size: 0.8rem; opacity: 0.8; }
-        .mc-done    { background: #f0fff4; border-color: #9ae6b4; }
-        .mc-failed  { background: #fffaf0; border-color: #fbd38d; }
-        .mc-skipped { background: #f7fafc; border-color: #e2e8f0; color: #a0aec0; }
+        .mc-done          { background: #f0fff4; border-color: #9ae6b4; }
+        .mc-failed        { background: #fffaf0; border-color: #fbd38d; }
+        .mc-skipped       { background: #f7fafc; border-color: #e2e8f0; color: #a0aec0; }
+        .mc-not_installed { background: #ebf8ff; border-color: #90cdf4; color: #2b6cb0; }
+        .mc-rate_limited  { background: #faf5ff; border-color: #d6bcfa; color: #553c9a; }
+        .mc-invalid_key   { background: #fff5f5; border-color: #feb2b2; color: #c53030; }
 
         /* Recommendations */
         .rec-item { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid #f0f0f0; }
@@ -197,7 +200,15 @@
         'paste':            'Content containing this target\'s data was found on a paste site. Paste sites are often used to dump leaked credentials or personal data.',
         'dark_web':         'A reference to this target was found on a dark web index or public darknet search. This may indicate leaked data or illicit activity.',
         'data_broker':      'This target appears in a data broker listing. Data brokers collect and sell personal information including name, address, and relatives.',
-        'web_presence':     'The email domain or username was found in web crawl data, subdomains, or public web content.',
+        'web_presence':       'The email domain or username was found in web crawl data, subdomains, or public web content.',
+        'email_reputation':   'emailrep.io checked this address against spam lists, breach databases, and malicious activity feeds to produce a reputation score.',
+        'domain_registration':'WHOIS registry data for the email domain — when it was created, who registered it, and its current status.',
+        'domain_scan':        'urlscan.io has browser-rendered scans of this domain on record, showing hosting infrastructure and any malicious verdicts from security engines.',
+        'domain_reputation':  'VirusTotal aggregated 70+ security vendors. Any malicious or suspicious rating means multiple antivirus/threat engines flagged this domain.',
+        'threat_intel':       'OTX AlienVault is a community threat intelligence feed. The pulse count shows how many security researchers have published threat reports about this domain.',
+        'ip_abuse':           'AbuseIPDB tracks abuse reports filed against IP addresses. A high confidence score means the IP behind this domain has been repeatedly reported for spam, hacking, or malware hosting.',
+        'google_account':     'Epieos detected a Google account associated with this email address. Public Google Maps reviews and other Google activity may be visible.',
+        'apple_account':      'Epieos detected an Apple ID linked to this email — the account is reachable via FaceTime and/or iMessage.',
     } %}
 
     {% for module_name, module_findings in findings.items() %}
@@ -319,6 +330,12 @@
                         ✓ {{ module_data.count }} finding{{ 's' if module_data.count != 1 else '' }}
                     {% elif module_data.status == 'failed' %}
                         ⚠ {{ module_data.error | truncate(40) }}
+                    {% elif module_data.status == 'not_installed' %}
+                        ○ not installed
+                    {% elif module_data.status == 'rate_limited' %}
+                        ⏱ rate limited
+                    {% elif module_data.status == 'invalid_key' %}
+                        🔑 invalid key
                     {% else %}
                         — skipped
                     {% endif %}
