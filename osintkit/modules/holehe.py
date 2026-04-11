@@ -4,7 +4,7 @@ import asyncio
 import shutil
 from typing import Any, Dict, List
 
-from osintkit.modules import ModuleError
+from osintkit.modules import ModuleError, MissingToolError
 
 
 async def run_email_accounts(inputs: Dict[str, Any], timeout_seconds: int) -> List[Dict]:
@@ -14,7 +14,7 @@ async def run_email_accounts(inputs: Dict[str, Any], timeout_seconds: int) -> Li
         return []
 
     if not shutil.which("holehe"):
-        raise ModuleError("Holehe not installed. Install with: pip install holehe")
+        raise MissingToolError("Holehe not installed. Install with: pip install holehe")
 
     try:
         proc = await asyncio.create_subprocess_exec(

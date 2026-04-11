@@ -47,6 +47,41 @@ FREE_API_KEYS = {
         "required": False,
         "needs_two_keys": True,  # key + cx
     },
+    "emailrep": {
+        "name": "EmailRep.io",
+        "description": "Email reputation, spam, malicious activity flags",
+        "limits": "100 requests/day without key, 1,000/day free tier",
+        "url": "https://emailrep.io/key",
+        "required": False,
+    },
+    "virustotal": {
+        "name": "VirusTotal",
+        "description": "Domain/IP malware and reputation scanning",
+        "limits": "500 lookups/day, 4 req/min (free tier)",
+        "url": "https://www.virustotal.com/gui/join-us",
+        "required": False,
+    },
+    "otx": {
+        "name": "OTX AlienVault",
+        "description": "Open threat intelligence — domain/IP indicators",
+        "limits": "Unlimited on free account",
+        "url": "https://otx.alienvault.com/",
+        "required": False,
+    },
+    "abuseipdb": {
+        "name": "AbuseIPDB",
+        "description": "IP abuse reports for email domain hosts",
+        "limits": "1,000 checks/day (free tier)",
+        "url": "https://www.abuseipdb.com/register",
+        "required": False,
+    },
+    "epieos": {
+        "name": "Epieos",
+        "description": "Reverse Google/Apple account lookup from email",
+        "limits": "Free tier available",
+        "url": "https://epieos.com",
+        "required": False,
+    },
 }
 
 
@@ -56,12 +91,16 @@ def is_first_run() -> bool:
     return not config_path.exists()
 
 
+DOCS_URL = "https://docs.codecho.de/oss/osintkit"
+
+
 def run_setup_wizard():
     """Run the first-time setup wizard."""
     console.print(Panel.fit(
         "[bold cyan]Welcome to osintkit![/bold cyan]\n\n"
         "OSINT tool for personal digital footprint analysis.\n"
-        "Let's set up your API keys (all optional, free tiers available).",
+        "All API keys are optional — free tiers available for every service.\n\n"
+        f"[dim]Full docs & key guide: {DOCS_URL}[/dim]",
         title="🚀 First-Time Setup",
     ))
     

@@ -22,6 +22,9 @@ class APIKeys(BaseModel):
     github: str = ""
     securitytrails: str = ""
     epieos: str = ""
+    virustotal: str = ""
+    otx: str = ""
+    abuseipdb: str = ""
 
 
 class Config(BaseModel):
@@ -30,6 +33,7 @@ class Config(BaseModel):
     output_dir: str = "~/osint-results"
     timeout_seconds: int = 120
     api_keys: APIKeys = Field(default_factory=APIKeys)
+    last_seen_version: str = ""  # tracks which version the user last ran (for update notices)
 
 
 def save_config(config: Config, config_path: Path) -> None:
@@ -39,6 +43,7 @@ def save_config(config: Config, config_path: Path) -> None:
         "output_dir": config.output_dir,
         "timeout_seconds": config.timeout_seconds,
         "api_keys": config.api_keys.model_dump(),
+        "last_seen_version": config.last_seen_version,
     }
     with open(config_path, "w") as f:
         yaml.dump(data, f, default_flow_style=False)

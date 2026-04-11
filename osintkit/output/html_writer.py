@@ -28,7 +28,7 @@ def write_html(
     env = Environment(loader=FileSystemLoader(templates_dir))
     template = env.get_template("report.html")
 
-    html_content = template.render(**findings)
+    html_content = template.render(**findings, inputs=findings.get("inputs", {}))
     html_content = _scrub_keys(html_content, api_keys)
 
     output_file = output_dir / "report.html"

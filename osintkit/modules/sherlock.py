@@ -16,7 +16,8 @@ async def run_sherlock(inputs: Dict[str, Any], timeout_seconds: int) -> List[Dic
         return []
 
     if not shutil.which("sherlock"):
-        return []
+        from osintkit.modules import MissingToolError
+        raise MissingToolError("Sherlock not installed. Install with: pip install sherlock-project")
 
     try:
         proc = await asyncio.create_subprocess_exec(

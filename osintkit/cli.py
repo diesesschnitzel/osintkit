@@ -30,9 +30,11 @@ _update_thread = None
 
 @app.callback()
 def _startup(ctx: typer.Context):
-    """Start background version check on every invocation."""
+    """Run startup checks and start background version check on every invocation."""
     global _update_thread
     _update_thread = _start_update_check()
+    from osintkit.startup import check_startup
+    check_startup()
 
 # ---- Version update check ----
 
@@ -768,6 +770,35 @@ def tag(
                          ", ".join(f"[bold]{t}[/bold]" for t in profile.tags))
         else:
             console.print(f"[dim]No tags on {profile.name or profile.id}[/dim]")
+
+
+@app.command()
+def bug():
+    """Report a bug or request a feature."""
+    import webbrowser
+    import urllib.parse
+
+    console.print("\n[bold]Report a bug or request a feature[/bold]\n")
+    console.print(f"  [cyan]GitHub Issues[/cyan]    https://github.com/diesesschnitzel/osintkit/issues/new")
+    console.print(f"  [cyan]Email[/cyan]             help@oss.codecho.de")
+    console.print(f"  [cyan]Docs[/cyan]              https://docs.codecho.de/osintkit/troubleshooting.html\n")
+
+    if Confirm.ask("Open a pre-filled GitHub issue in your browser?", default=True):
+        title = urllib.parse.quote("Bug report: ")
+        body = urllib.parse.quote(
+            f"**osintkit version:** {__version__}\n"
+            f"**Python:** {sys.version.split()[0]}\n"
+            f"**OS:** {sys.platform}\n\n"
+            "**Describe the bug:**\n\n"
+            "**Steps to reproduce:**\n1. \n2. \n\n"
+            "**Expected behavior:**\n\n"
+            "**Actual behavior:**\n"
+        )
+        webbrowser.open(
+            f"https://github.com/diesesschnitzel/osintkit/issues/new"
+            f"?title={title}&body={body}&labels=bug"
+        )
+        console.print("[green]✓[/green] Opened in browser")
 
 
 if __name__ == "__main__":

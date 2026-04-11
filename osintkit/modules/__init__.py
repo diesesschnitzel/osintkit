@@ -14,3 +14,8 @@ class RateLimitError(ModuleError):
 class InvalidKeyError(ModuleError):
     """Raised when an API key is invalid or unauthorized (401/403)."""
     pass
+
+
+class MissingToolError(ModuleError):
+    """Raised when a required external tool (e.g. holehe, maigret) is not installed."""
+    pass

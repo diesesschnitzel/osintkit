@@ -5,7 +5,7 @@ import shutil
 import json
 from typing import Any, Dict, List
 
-from osintkit.modules import ModuleError
+from osintkit.modules import ModuleError, MissingToolError
 
 
 async def run_social_profiles(inputs: Dict[str, Any], timeout_seconds: int) -> List[Dict]:
@@ -15,7 +15,7 @@ async def run_social_profiles(inputs: Dict[str, Any], timeout_seconds: int) -> L
         return []
 
     if not shutil.which("maigret"):
-        raise ModuleError("Maigret not installed. Install with: pip install maigret")
+        raise MissingToolError("Maigret not installed. Install with: pip install maigret")
 
     try:
         import tempfile, shutil as _shutil

@@ -63,3 +63,8 @@ osint-results/
 
 # Old package name artifact
 bin/datashadow.js
+
+# Comprehensive test artifacts
+COMPREHENSIVE_TEST_FINDINGS.md
+COMPREHENSIVE_TEST_REPORT.md
+docs/

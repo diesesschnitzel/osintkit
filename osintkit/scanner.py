@@ -8,7 +8,7 @@ from rich.console import Console
 from rich.progress import Progress
 
 from osintkit.config import Config
-from osintkit.modules import RateLimitError, InvalidKeyError
+from osintkit.modules import RateLimitError, InvalidKeyError, MissingToolError
 from osintkit.output.json_writer import write_json
 from osintkit.output.html_writer import write_html
 from osintkit.output.md_writer import write_md
@@ -44,6 +44,9 @@ class Scanner:
             ("phone_info", self._run_phone_info, "Phone analysis"),
             ("hibp_kanon", self._run_hibp_kanon, "Password k-anonymity check"),
             ("github_api", self._run_stage2_github, "GitHub profile"),  # always runs; token optional
+            ("emailrep", self._run_emailrep, "Email reputation"),
+            ("whois", self._run_whois, "WHOIS domain registration"),
+            ("urlscan", self._run_urlscan, "Domain scan history"),
         ]
 
         # Stage 2 modules — only included when corresponding API key is set
@@ -58,6 +61,10 @@ class Scanner:
                 self._run_stage2_securitytrails,
                 "SecurityTrails subdomains",
             ),
+            ("virustotal", api_keys.virustotal, self._run_stage2_virustotal, "VirusTotal domain"),
+            ("otx", api_keys.otx, self._run_stage2_otx, "OTX AlienVault threat intel"),
+            ("abuseipdb", api_keys.abuseipdb, self._run_stage2_abuseipdb, "AbuseIPDB IP check"),
+            ("epieos", api_keys.epieos, self._run_stage2_epieos, "Epieos Google/Apple lookup"),
         ]
 
         for name, key, func, desc in stage2_map:
@@ -128,6 +135,18 @@ class Scanner:
         from osintkit.modules.hibp_kanon import run_hibp_kanon
         return await run_hibp_kanon(inputs)
 
+    async def _run_emailrep(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.emailrep import run_emailrep
+        return await run_emailrep(inputs, self.config.api_keys.emailrep or "")
+
+    async def _run_whois(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.whois_lookup import run_whois
+        return await run_whois(inputs)
+
+    async def _run_urlscan(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.urlscan import run_urlscan
+        return await run_urlscan(inputs)
+
     # ---- Stage 2 module runners ----
 
     async def _run_stage2_leakcheck(self, inputs: Dict) -> List[Dict]:
@@ -149,6 +168,22 @@ class Scanner:
     async def _run_stage2_securitytrails(self, inputs: Dict) -> List[Dict]:
         from osintkit.modules.stage2.securitytrails import run
         return await run(inputs, self.config.api_keys.securitytrails)
+
+    async def _run_stage2_virustotal(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.stage2.virustotal import run
+        return await run(inputs, self.config.api_keys.virustotal)
+
+    async def _run_stage2_otx(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.stage2.otx import run
+        return await run(inputs, self.config.api_keys.otx)
+
+    async def _run_stage2_abuseipdb(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.stage2.abuseipdb import run
+        return await run(inputs, self.config.api_keys.abuseipdb)
+
+    async def _run_stage2_epieos(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.stage2.epieos import run
+        return await run(inputs, self.config.api_keys.epieos)
 
     # ---- Execution ----
 
@@ -172,6 +207,9 @@ class Scanner:
                 findings["findings"][name] = []
             except InvalidKeyError as e:
                 findings["modules"][name] = {"status": "invalid_key", "error": str(e)}
+                findings["findings"][name] = []
+            except MissingToolError as e:
+                findings["modules"][name] = {"status": "not_installed", "error": str(e)}
                 findings["findings"][name] = []
             except Exception as e:
                 findings["modules"][name] = {"status": "failed", "error": str(e)}
@@ -225,6 +263,14 @@ class Scanner:
                     task_info["task_id"],
                     completed=True,
                     description=f"[yellow]invalid key {task_info['desc']}[/yellow]",
+                )
+            except MissingToolError as e:
+                findings["modules"][name] = {"status": "not_installed", "error": str(e)}
+                findings["findings"][name] = []
+                progress.update(
+                    task_info["task_id"],
+                    completed=True,
+                    description=f"[yellow]not installed — {task_info['desc']}[/yellow]",
                 )
             except Exception as e:
                 findings["modules"][name] = {"status": "failed", "error": str(e)}

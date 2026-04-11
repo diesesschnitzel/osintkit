@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-from osintkit.modules import ModuleError
+from osintkit.modules import ModuleError, MissingToolError
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ async def run_web_presence(inputs: Dict[str, Any], timeout_seconds: int) -> List
         return []
 
     if not shutil.which("theHarvester"):
-        raise ModuleError("theHarvester not installed")
+        raise MissingToolError("theHarvester not installed. Install with: pip install theHarvester")
 
     tmp_base = tempfile.mkdtemp(prefix="osintkit_harvester_")
     output_file = Path(tmp_base) / f"harvester_{domain}.json"
