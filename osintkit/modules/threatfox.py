@@ -25,7 +25,7 @@ async def run_threatfox(inputs: Dict[str, Any]) -> List[Dict]:
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0)) as client:
             resp = await client.post(
-                "https://api.threatfox.abuse.ch/api/v1/",
+                "https://threatfox-api.abuse.ch/api/v1/",
                 json={"query": "search_ioc", "search_term": domain},
                 headers={"Content-Type": "application/json"},
             )

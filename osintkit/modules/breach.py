@@ -52,8 +52,9 @@ async def _check_hibp(email: str, api_key: str) -> List[Dict]:
 
 
 async def _check_breachdirectory(email: str, api_key: str) -> List[Dict]:
-    url = "https://breachdirectory.p.rapidapi.com/"
-    headers = {"X-RapidAPI-Key": api_key, "X-RapidAPI-Host": "breachdirectory.p.rapidapi.com"}
+    # Updated endpoint: RapidAPI listing removed; now using breachdirectory.com (Logoutify)
+    url = "https://breachdirectory.com/api/"
+    headers = {"Authorization": f"Bearer {api_key}"}
     resp = await httpx.AsyncClient(timeout=30, headers=headers).get(url, params={"func": "auto", "term": email})
     if resp.status_code != 200:
         raise ModuleError(f"BreachDirectory error: {resp.status_code}")

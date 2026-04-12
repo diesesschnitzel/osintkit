@@ -1,8 +1,11 @@
 """Interactive setup wizard for osintkit API keys."""
 
+import sys
+import termios
+import tty
 from pathlib import Path
 from rich.console import Console
-from rich.prompt import Prompt, Confirm
+from rich.prompt import Confirm
 from rich.panel import Panel
 from rich.table import Table
 import yaml
@@ -21,7 +24,7 @@ STAGE1_OPTIONAL = [
         "emailrep",
         "EmailRep.io",
         "Email reputation, spam & malicious activity flags",
-        "Works without key; key raises limit to 1,000/day",
+        "Works without key; key = 250 queries/month (free tier)",
         "https://emailrep.io/key",
     ),
     (
@@ -108,7 +111,7 @@ STAGE2_KEYS = [
         "securitytrails",
         "SecurityTrails",
         "Historical DNS records and subdomains",
-        "50 requests/month — free account",
+        "Free tier — see securitytrails.com for current limits",
         "https://securitytrails.com/",
     ),
     (
@@ -138,6 +141,38 @@ GOOGLE_CSE = {
 }
 
 
+def _prompt_with_stars(label: str) -> str:
+    """Prompt that echoes * for each character so the user can see how many chars they've entered."""
+    sys.stdout.write(label)
+    sys.stdout.flush()
+    chars: list = []
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        while True:
+            ch = sys.stdin.read(1)
+            if ch in ('\r', '\n'):
+                break
+            elif ch in ('\x7f', '\x08'):   # backspace / delete
+                if chars:
+                    chars.pop()
+                    sys.stdout.write('\b \b')
+                    sys.stdout.flush()
+            elif ch == '\x03':             # Ctrl-C
+                raise KeyboardInterrupt
+            elif ch == '\x1b':             # ignore escape sequences (arrow keys etc.)
+                sys.stdin.read(2)
+            else:
+                chars.append(ch)
+                sys.stdout.write('*')
+                sys.stdout.flush()
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+    sys.stdout.write('\n')
+    return ''.join(chars).strip()
+
+
 def _mask(value: str) -> str:
     """Return masked display string for an existing key."""
     if not value:
@@ -164,8 +199,8 @@ def _ask_key(label: str, description: str, limits: str, url: str, existing: str)
         keep = Confirm.ask("  Keep existing key?", default=True)
         if keep:
             return existing
-    value = Prompt.ask("  Paste API key (or press Enter to skip)", password=True, default="")
-    return value.strip()
+    value = _prompt_with_stars("  Paste API key (or press Enter to skip): ")
+    return value
 
 
 def run_setup_wizard():
@@ -229,13 +264,13 @@ def run_setup_wizard():
             new_keys[GOOGLE_CSE["api_key_field"]] = gkey
             new_keys[GOOGLE_CSE["cx_field"]] = gcx or ""
         else:
-            api_key_val = Prompt.ask("  Paste API Key (or Enter to skip)", password=True, default="")
+            api_key_val = _prompt_with_stars("  Paste API Key (or Enter to skip): ")
             if api_key_val.strip():
                 cx_val = Prompt.ask("  Paste Search Engine ID (cx)", default="")
                 new_keys[GOOGLE_CSE["api_key_field"]] = api_key_val.strip()
                 new_keys[GOOGLE_CSE["cx_field"]] = cx_val.strip()
     else:
-        api_key_val = Prompt.ask("  Paste API Key (or Enter to skip)", password=True, default="")
+        api_key_val = _prompt_with_stars("  Paste API Key (or Enter to skip): ")
         if api_key_val.strip():
             cx_val = Prompt.ask("  Paste Search Engine ID (cx)", default="")
             new_keys[GOOGLE_CSE["api_key_field"]] = api_key_val.strip()

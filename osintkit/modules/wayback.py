@@ -56,7 +56,7 @@ async def run_wayback(inputs: Dict[str, Any]) -> List[Dict]:
                     "fl": "original,timestamp",
                 }
                 response = await client.get(
-                    "http://web.archive.org/cdx/search/cdx",
+                    "https://web.archive.org/cdx/search/cdx",
                     params=params,
                 )
 

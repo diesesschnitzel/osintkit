@@ -21,7 +21,7 @@ from osintkit.config import load_config, save_config, Config, APIKeys
 from osintkit.profiles import Profile, ProfileStore, ScanHistory
 from osintkit.setup import update_api_key
 
-app = typer.Typer(help="OSINT CLI for personal digital footprint analysis", invoke_without_command=True)
+app = typer.Typer(help="OSINT CLI for personal digital footprint analysis", invoke_without_command=True, name="osintkit")
 console = Console()
 store = ProfileStore()
 logger = logging.getLogger(__name__)
@@ -248,8 +248,67 @@ def setup():
     run_setup_wizard()
 
 
+@app.command("s", hidden=True)
+def setup_alias():
+    """Alias for 'setup'."""
+    setup()
+
+
+@app.command()
+def scan(
+    target: Optional[str] = typer.Argument(None, help="Email, username, or name (shorthand)"),
+    email: Optional[str] = typer.Option(None, "--email", "-e", help="Email address to scan"),
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="Full name"),
+    username: Optional[str] = typer.Option(None, "--user", "-u", help="Username or handle"),
+    phone: Optional[str] = typer.Option(None, "--phone", "-p", help="Phone number"),
+):
+    """Run a scan directly — no profile needed.
+
+    Examples:
+      osintkit scan alice@example.com
+      osintkit scan --email alice@example.com --name "Alice"
+      osintkit sc -e alice@example.com
+    """
+    check_first_time()
+
+    # Positional shorthand: @-containing → email, else → name
+    if target:
+        if "@" in target and not email:
+            email = target
+        elif not name:
+            name = target
+
+    if not any([email, name, username, phone]):
+        console.print("[red]Error: provide at least one of: email, name, --user, --phone[/red]")
+        raise typer.Exit(1)
+
+    if phone:
+        phone = validate_and_format_phone(phone) or phone
+
+    profile = Profile(
+        name=name or None,
+        email=email or None,
+        username=username or None,
+        phone=phone or None,
+    )
+    run_scan_for_profile(profile)
+
+
+@app.command("sc", hidden=True)
+def scan_alias(
+    target: Optional[str] = typer.Argument(None),
+    email: Optional[str] = typer.Option(None, "--email", "-e"),
+    name: Optional[str] = typer.Option(None, "--name", "-n"),
+    username: Optional[str] = typer.Option(None, "--user", "-u"),
+    phone: Optional[str] = typer.Option(None, "--phone", "-p"),
+):
+    """Alias for 'scan'."""
+    scan(target=target, email=email, name=name, username=username, phone=phone)
+
+
 config_app = typer.Typer(help="Manage osintkit configuration.")
 app.add_typer(config_app, name="config")
+app.add_typer(config_app, name="cfg")
 
 
 @config_app.command("set-key")
@@ -360,6 +419,12 @@ def new():
         store.add_scan_result(profile.id, scan_record)
 
 
+@app.command("n", hidden=True)
+def new_alias():
+    """Alias for 'new'."""
+    new()
+
+
 @app.command()
 def list(
     filter_tag: Optional[str] = typer.Option(None, "--tag", "-t", help="Filter by tag"),
@@ -402,6 +467,12 @@ def list(
     _print_update_notice()
 
 
+@app.command("ls", hidden=True)
+def list_alias(filter_tag: Optional[str] = typer.Option(None, "--tag", "-t")):
+    """Alias for 'list'."""
+    list(filter_tag=filter_tag)
+
+
 @app.command()
 def refresh(profile_ref: str = typer.Argument(None, help="Profile ID or name")):
     """Refresh scan for a profile."""
@@ -439,6 +510,12 @@ def refresh(profile_ref: str = typer.Argument(None, help="Profile ID or name")):
     store.add_scan_result(profile.id, scan_record)
     console.print(f"\n[green]✓[/green] Scan saved to profile history")
     _print_update_notice()
+
+
+@app.command("r", hidden=True)
+def refresh_alias(profile_ref: str = typer.Argument(None)):
+    """Alias for 'refresh'."""
+    refresh(profile_ref=profile_ref)
 
 
 @app.command()
@@ -499,6 +576,12 @@ def open(profile_ref: str = typer.Argument(None, help="Profile ID or name")):
         console.print("\n[yellow]No scans yet. Use 'osintkit refresh' to run a scan.[/yellow]")
     
     console.print()
+
+
+@app.command("o", hidden=True)
+def open_alias(profile_ref: str = typer.Argument(None)):
+    """Alias for 'open'."""
+    open(profile_ref=profile_ref)
 
 
 @app.command()
@@ -585,6 +668,16 @@ def export(
         console.print(f"[red]Unknown format: {format}[/red]")
 
 
+@app.command("exp", hidden=True)
+def export_alias(
+    profile_ref: str = typer.Argument(None),
+    format: str = typer.Option("json", "--format", "-f"),
+    output: Path = typer.Option(None, "--output", "-o"),
+):
+    """Alias for 'export'."""
+    export(profile_ref=profile_ref, format=format, output=output)
+
+
 @app.command()
 def delete(profile_ref: str = typer.Argument(None, help="Profile ID or name")):
     """Delete a profile."""
@@ -601,6 +694,12 @@ def delete(profile_ref: str = typer.Argument(None, help="Profile ID or name")):
         console.print(f"[green]✓[/green] Deleted")
 
 
+@app.command("rm", hidden=True)
+def delete_alias(profile_ref: str = typer.Argument(None)):
+    """Alias for 'delete'."""
+    delete(profile_ref=profile_ref)
+
+
 @app.command()
 def version():
     """Show version. Also available as: osintkit -v"""
@@ -608,6 +707,12 @@ def version():
         _update_thread.join(timeout=4)
     console.print(f"osintkit v{__version__}")
     _print_update_notice()
+
+
+@app.command("v", hidden=True)
+def version_alias():
+    """Alias for 'version'."""
+    version()
 
 
 @app.command()
@@ -633,6 +738,12 @@ def update():
                 console.print("\n[red]Update failed.[/red] Try manually: npm install -g osintkit")
     else:
         console.print(f"[green]✓[/green] Already on latest version (v{__version__})")
+
+
+@app.command("up", hidden=True)
+def update_alias():
+    """Alias for 'update'."""
+    update()
 
 
 @app.command()

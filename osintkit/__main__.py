@@ -6,8 +6,9 @@ import sys
 #   osintkit <id>     → osintkit open <id>
 #   osintkit -v       → osintkit version
 _KNOWN_COMMANDS = {
-    "new", "list", "refresh", "open", "export",
-    "setup", "delete", "version", "update", "tag",
+    "new", "n", "list", "ls", "refresh", "r", "open", "o", "export", "exp",
+    "setup", "s", "scan", "sc", "delete", "rm", "version", "v", "update", "up",
+    "tag", "bug", "config", "cfg",
 }
 
 if len(sys.argv) == 1:
@@ -22,4 +23,4 @@ elif len(sys.argv) == 2:
         sys.argv = [sys.argv[0], "open", arg]
 
 from osintkit.cli import app
-app()
+app(prog_name="osintkit")

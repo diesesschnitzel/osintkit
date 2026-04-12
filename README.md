@@ -20,6 +20,7 @@ This automatically installs all Python dependencies via the postinstall script. 
 
 ```bash
 osintkit setup      # Configure API keys (optional, all have free tiers)
+osintkit scan alice@example.com  # Scan directly — no profile needed
 osintkit new        # Create a profile and run a scan
 osintkit list       # View all profiles
 osintkit refresh    # Re-run scan on a profile
@@ -28,21 +29,22 @@ osintkit open       # View profile details + open latest report
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `osintkit new` | Create a new profile and run a scan |
-| `osintkit list` | List all profiles with last risk score |
-| `osintkit refresh [id]` | Re-run scan for a profile |
-| `osintkit open [id]` | Show profile details and open latest report |
-| `osintkit export [id]` | Export as JSON or Markdown |
-| `osintkit setup` | Configure API keys interactively |
-| `osintkit config set-key <key> <value>` | Update a single API key |
-| `osintkit config show` | Show which keys are set (values hidden) |
-| `osintkit tag [id]` | Add, remove, or list tags on a profile |
-| `osintkit delete [id]` | Delete a profile |
-| `osintkit update` | Check for and install a newer version |
-| `osintkit bug` | Report a bug (opens GitHub issue pre-filled) |
-| `osintkit version` | Show version |
+| Command | Alias | Description |
+|---------|-------|-------------|
+| `osintkit scan [target]` | `sc` | Scan directly — no profile needed |
+| `osintkit new` | `n` | Create a new profile and run a scan |
+| `osintkit list` | `ls` | List all profiles with last risk score |
+| `osintkit refresh [id]` | `r` | Re-run scan for a profile |
+| `osintkit open [id]` | `o` | Show profile details and open latest report |
+| `osintkit export [id]` | `exp` | Export as JSON or Markdown |
+| `osintkit setup` | `s` | Configure API keys interactively |
+| `osintkit config set-key <key> <value>` | `cfg set-key` | Update a single API key |
+| `osintkit config show` | `cfg show` | Show which keys are set (values hidden) |
+| `osintkit tag [id]` | — | Add, remove, or list tags on a profile |
+| `osintkit delete [id]` | `rm` | Delete a profile |
+| `osintkit update` | `up` | Check for and install a newer version |
+| `osintkit bug` | — | Report a bug (opens GitHub issue pre-filled) |
+| `osintkit version` | `v` | Show version |
 
 ## What It Checks
 
@@ -58,6 +60,8 @@ osintkit open       # View profile details + open latest report
 | theHarvester | email/domain | Web presence, subdomains |
 | crt.sh | email/domain | Certificate transparency logs |
 | Wayback CDX | email | Historical web appearances |
+| Shodan InternetDB | email/domain | Open ports + CVEs (no key) |
+| ThreatFox | email domain | Malware C2 / IOC check (no key) |
 | libphonenumber | phone | Carrier, region, line type (offline) |
 | Paste search | email | Paste site appearances |
 | Data brokers | name/email | Public broker listing scan |
@@ -70,17 +74,18 @@ osintkit open       # View profile details + open latest report
 
 ### Stage 2 — Optional free API keys
 
-| Service | Input | Free tier | Get key |
-|---------|-------|-----------|---------|
-| HaveIBeenPwned | email | Paid ($3.50/mo) | haveibeenpwned.com |
-| LeakCheck | email/phone/user | Free tier | leakcheck.io |
-| NumVerify | phone | 100/month | numverify.com |
-| Hunter.io | email | 25/month | hunter.io |
-| SecurityTrails | domain | Paid | securitytrails.com |
-| VirusTotal | email domain | 500/day | virustotal.com |
-| OTX AlienVault | email domain | Unlimited | otx.alienvault.com |
-| AbuseIPDB | email domain IP | 1,000/day | abuseipdb.com |
-| Epieos | email | Free tier | epieos.com |
+| Service | Key name | Input | Free tier | Get key |
+|---------|----------|-------|-----------|---------|
+| VirusTotal | `virustotal` | email domain | 500/day | virustotal.com |
+| OTX AlienVault | `otx` | email domain | Unlimited | otx.alienvault.com |
+| AbuseIPDB | `abuseipdb` | email domain | 1,000/day | abuseipdb.com |
+| GreyNoise | `greynoise` | email domain | 50/week | greynoise.io |
+| IntelligenceX | `intelligencex` | email/username | 50/day | intelx.io |
+| Netlas | `netlas` | email domain | 50/day | netlas.io |
+| Pulsedive | `pulsedive` | email domain | 10/day | pulsedive.com |
+| SecurityTrails | `securitytrails` | domain | see site | securitytrails.com |
+| Hunter.io | `hunter` | email | 25/month | hunter.io |
+| NumVerify | `numverify` | phone | 100/month | numverify.com |
 
 Stage 2 modules only run when a key is configured. Rate-limited modules show yellow, not red — the scan always completes.
 
