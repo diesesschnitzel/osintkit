@@ -94,4 +94,34 @@ def calculate_risk_score(findings: Dict[str, List]) -> int:
         pulses = f.get("data", {}).get("pulse_count", 0) or 0
         score += min(10, pulses * 2)
 
+    # ── GreyNoise IP classification (up to 15 pts) ───────────────
+    for f in findings.get("greynoise", []):
+        classification = f.get("data", {}).get("classification", "")
+        if classification == "malicious":
+            score += 15
+        elif classification == "unknown" and f.get("data", {}).get("noise"):
+            score += 5  # known scanner but unclassified
+
+    # ── ThreatFox IOC hits (up to 15 pts) ───────────────────────
+    threatfox_hits = findings.get("threatfox", [])
+    if threatfox_hits:
+        # Each IOC hit is significant; cap quickly
+        score += min(15, len(threatfox_hits) * 5)
+
+    # ── Shodan open CVEs (up to 10 pts) ─────────────────────────
+    for f in findings.get("shodan_internetdb", []):
+        vulns = f.get("data", {}).get("vulnerabilities", []) or []
+        score += min(10, len(vulns) * 2)
+
+    # ── Pulsedive IOC risk level (up to 15 pts) ──────────────────
+    _pulsedive_risk = {"critical": 15, "high": 12, "medium": 8, "low": 4, "none": 0}
+    for f in findings.get("pulsedive", []):
+        risk_level = f.get("data", {}).get("risk", "none")
+        score += _pulsedive_risk.get(risk_level, 0)
+
+    # ── IntelligenceX leaked records (up to 10 pts) ──────────────
+    ix_hits = findings.get("intelligencex", [])
+    if ix_hits:
+        score += min(10, len(ix_hits) * 2)
+
     return min(100, score)

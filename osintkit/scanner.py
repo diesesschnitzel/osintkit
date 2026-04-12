@@ -47,12 +47,15 @@ class Scanner:
             ("emailrep", self._run_emailrep, "Email reputation"),
             ("whois", self._run_whois, "WHOIS domain registration"),
             ("urlscan", self._run_urlscan, "Domain scan history"),
+            # v0.2.0 Stage 1 additions (free, no key needed)
+            ("shodan_internetdb", self._run_shodan_internetdb, "Shodan open ports / CVEs"),
+            ("threatfox", self._run_threatfox, "ThreatFox IOC / malware C2"),
+            ("ipinfo", self._run_ipinfo, "IP geolocation / ASN"),
         ]
 
         # Stage 2 modules — only included when corresponding API key is set
         api_keys = self.config.api_keys
         stage2_map = [
-            ("leakcheck", api_keys.leakcheck, self._run_stage2_leakcheck, "LeakCheck breach lookup"),
             ("hunter", api_keys.hunter, self._run_stage2_hunter, "Hunter email verify"),
             ("numverify", api_keys.numverify, self._run_stage2_numverify, "NumVerify phone"),
             (
@@ -64,7 +67,11 @@ class Scanner:
             ("virustotal", api_keys.virustotal, self._run_stage2_virustotal, "VirusTotal domain"),
             ("otx", api_keys.otx, self._run_stage2_otx, "OTX AlienVault threat intel"),
             ("abuseipdb", api_keys.abuseipdb, self._run_stage2_abuseipdb, "AbuseIPDB IP check"),
-            ("epieos", api_keys.epieos, self._run_stage2_epieos, "Epieos Google/Apple lookup"),
+            # v0.2.0 Stage 2 additions (free accounts)
+            ("greynoise", api_keys.greynoise, self._run_stage2_greynoise, "GreyNoise IP classification"),
+            ("intelligencex", api_keys.intelligencex, self._run_stage2_intelligencex, "IntelligenceX leak search"),
+            ("netlas", api_keys.netlas, self._run_stage2_netlas, "Netlas internet scan data"),
+            ("pulsedive", api_keys.pulsedive, self._run_stage2_pulsedive, "Pulsedive IOC risk"),
         ]
 
         for name, key, func, desc in stage2_map:
@@ -147,11 +154,19 @@ class Scanner:
         from osintkit.modules.urlscan import run_urlscan
         return await run_urlscan(inputs)
 
-    # ---- Stage 2 module runners ----
+    async def _run_shodan_internetdb(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.shodan_internetdb import run_shodan_internetdb
+        return await run_shodan_internetdb(inputs)
 
-    async def _run_stage2_leakcheck(self, inputs: Dict) -> List[Dict]:
-        from osintkit.modules.stage2.leakcheck import run
-        return await run(inputs, self.config.api_keys.leakcheck)
+    async def _run_threatfox(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.threatfox import run_threatfox
+        return await run_threatfox(inputs)
+
+    async def _run_ipinfo(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.ipinfo import run_ipinfo
+        return await run_ipinfo(inputs, self.config.api_keys.ipinfo or "")
+
+    # ---- Stage 2 module runners ----
 
     async def _run_stage2_hunter(self, inputs: Dict) -> List[Dict]:
         from osintkit.modules.stage2.hunter import run
@@ -181,9 +196,21 @@ class Scanner:
         from osintkit.modules.stage2.abuseipdb import run
         return await run(inputs, self.config.api_keys.abuseipdb)
 
-    async def _run_stage2_epieos(self, inputs: Dict) -> List[Dict]:
-        from osintkit.modules.stage2.epieos import run
-        return await run(inputs, self.config.api_keys.epieos)
+    async def _run_stage2_greynoise(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.stage2.greynoise import run
+        return await run(inputs, self.config.api_keys.greynoise)
+
+    async def _run_stage2_intelligencex(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.stage2.intelligencex import run
+        return await run(inputs, self.config.api_keys.intelligencex)
+
+    async def _run_stage2_netlas(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.stage2.netlas import run
+        return await run(inputs, self.config.api_keys.netlas)
+
+    async def _run_stage2_pulsedive(self, inputs: Dict) -> List[Dict]:
+        from osintkit.modules.stage2.pulsedive import run
+        return await run(inputs, self.config.api_keys.pulsedive)
 
     # ---- Execution ----
 
