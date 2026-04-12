@@ -21,8 +21,14 @@ KEYS_ADDED_IN: dict[str, list[tuple[str, str, str]]] = {
     "0.1.6": [
         ("virustotal", "VirusTotal — domain malware & reputation", "https://virustotal.com/gui/join-us"),
         ("otx",        "OTX AlienVault — threat intelligence",    "https://otx.alienvault.com"),
-        ("abuseipdb",  "AbuseIPDB — IP abuse reports",           "https://abuseipdb.com/register"),
-        ("epieos",     "Epieos — Google/Apple account lookup",   "https://epieos.com"),
+        ("abuseipdb",  "AbuseIPDB — IP abuse reports",            "https://abuseipdb.com/register"),
+    ],
+    "0.1.8": [
+        ("greynoise",      "GreyNoise — IP noise classification",       "https://www.greynoise.io/plans/free-intelligence"),
+        ("intelligencex",  "IntelligenceX — darknet + leak search",     "https://intelx.io/"),
+        ("netlas",         "Netlas — internet scan data",               "https://app.netlas.io/plans/"),
+        ("pulsedive",      "Pulsedive — IOC risk scoring",              "https://pulsedive.com/"),
+        ("ipinfo",         "IPInfo — IP geolocation / ASN (optional)",  "https://ipinfo.io/signup"),
     ],
 }
 

@@ -127,63 +127,12 @@ def validate_and_format_phone(phone_str: str) -> Optional[str]:
 # ============ SETUP ============
 
 def check_first_time():
-    """Check if this is first run and prompt for API keys."""
+    """Check if this is first run — if so, delegate to the setup wizard."""
+    from osintkit.setup import run_setup_wizard
     config_path = Path.home() / ".osintkit" / "config.yaml"
-    
     if not config_path.exists():
-        console.print("\n[bold cyan]═══ First Time Setup ═══[/bold cyan]\n")
-        console.print("osintkit needs API keys for full functionality.")
-        console.print("[dim]You can skip this and add keys later.[/dim]\n")
-        console.print(
-            "[dim]Tip: for social profile enumeration install optional tools:\n"
-            "  pip install -r requirements-tools.txt  (maigret, holehe, sherlock)[/dim]\n"
-        )
-        
-        keys = {}
-        api_key_list = [
-            ("hibp", "HaveIBeenPwned", "Free tier available"),
-            ("breachdirectory", "BreachDirectory", "Via RapidAPI"),
-            ("leakcheck", "LeakCheck", "Free tier available"),
-            ("intelbase", "Intelbase", "Dark web + paste search"),
-            ("google_cse_key", "Google CSE Key", "Data broker search"),
-            ("google_cse_cx", "Google CSE CX ID", "Engine ID"),
-            ("numverify", "NumVerify", "Phone validation"),
-            ("emailrep", "EmailRep", "Email reputation"),
-            ("hunter", "Hunter.io (email finder)", "https://hunter.io"),
-            ("github", "GitHub Personal Access Token", "https://github.com/settings/tokens"),
-            ("securitytrails", "SecurityTrails", "https://securitytrails.com"),
-        ]
-        
-        for key_name, service_name, note in api_key_list:
-            value = Prompt.ask(f"{service_name} ({note})", default="")
-            keys[key_name] = value.strip()
-        
-        # Create config
-        config_path.parent.mkdir(parents=True, exist_ok=True)
-        config_content = f"""# osintkit Configuration
-output_dir: ~/osint-results
-timeout_seconds: 120
-
-api_keys:
-  hibp: "{keys.get('hibp', '')}"
-  breachdirectory: "{keys.get('breachdirectory', '')}"
-  leakcheck: "{keys.get('leakcheck', '')}"
-  intelbase: "{keys.get('intelbase', '')}"
-  google_cse_key: "{keys.get('google_cse_key', '')}"
-  google_cse_cx: "{keys.get('google_cse_cx', '')}"
-  numverify: "{keys.get('numverify', '')}"
-  emailrep: "{keys.get('emailrep', '')}"
-  resend: ""
-  hunter: "{keys.get('hunter', '')}"
-  github: "{keys.get('github', '')}"
-  securitytrails: "{keys.get('securitytrails', '')}"
-  epieos: ""
-"""
-        config_path.write_text(config_content)
-        config_path.chmod(0o600)  # API keys must not be world-readable
-        console.print(f"\n[green]✓[/green] Config saved to {config_path}")
+        run_setup_wizard()
         return True
-    
     return False
 
 
@@ -294,44 +243,9 @@ def run_scan_for_profile(profile: Profile) -> dict:
 
 @app.command()
 def setup():
-    """Configure API keys. Existing keys are preserved unless a new value is entered."""
-    config_path = Path.home() / ".osintkit" / "config.yaml"
-    existing = load_config(config_path)
-
-    console.print("\n[bold cyan]═══ API Key Setup ═══[/bold cyan]\n")
-    console.print("Press [bold]Enter[/bold] to keep an existing key. Type a new value to update it.\n")
-
-    api_key_list = [
-        ("hibp", "HaveIBeenPwned", "https://haveibeenpwned.com/API/Key"),
-        ("breachdirectory", "BreachDirectory", "https://rapidapi.com/"),
-        ("leakcheck", "LeakCheck", "https://leakcheck.io/"),
-        ("intelbase", "Intelbase", "https://intelbase.is/"),
-        ("google_cse_key", "Google CSE API Key", "https://developers.google.com/custom-search/"),
-        ("google_cse_cx", "Google CSE Engine ID", ""),
-        ("numverify", "NumVerify", "https://numverify.com/"),
-        ("emailrep", "EmailRep", "https://emailrep.io/"),
-        ("hunter", "Hunter.io (email finder)", "https://hunter.io"),
-        ("github", "GitHub Personal Access Token", "https://github.com/settings/tokens"),
-        ("securitytrails", "SecurityTrails", "https://securitytrails.com"),
-    ]
-
-    keys_dict = existing.api_keys.model_dump()
-
-    for key_name, label, url in api_key_list:
-        current = keys_dict.get(key_name, "")
-        status = "[green][set][/green]" if current else "[dim][not set][/dim]"
-        hint = f" ({url})" if url else ""
-        value = Prompt.ask(f"  {status} {label}{hint}", default="")
-        if value.strip():
-            keys_dict[key_name] = value.strip()
-
-    updated = Config(
-        output_dir=existing.output_dir,
-        timeout_seconds=existing.timeout_seconds,
-        api_keys=APIKeys(**keys_dict),
-    )
-    save_config(updated, config_path)
-    console.print(f"\n[green]✓[/green] Config saved: {config_path}")
+    """Configure API keys interactively. Existing keys are preserved unless updated."""
+    from osintkit.setup import run_setup_wizard
+    run_setup_wizard()
 
 
 config_app = typer.Typer(help="Manage osintkit configuration.")
