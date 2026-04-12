@@ -8,7 +8,7 @@ from osintkit.modules import ModuleError
 
 
 async def run_breach_exposure(inputs: Dict[str, Any], api_keys: APIKeys) -> List[Dict]:
-    """Check breach exposure with fallback chain: HIBP -> BreachDirectory -> LeakCheck."""
+    """Check breach exposure with fallback chain: HIBP -> BreachDirectory."""
     email = inputs.get("email")
     if not email:
         return []
@@ -22,12 +22,6 @@ async def run_breach_exposure(inputs: Dict[str, Any], api_keys: APIKeys) -> List
     if api_keys.breachdirectory:
         try:
             return await _check_breachdirectory(email, api_keys.breachdirectory)
-        except ModuleError:
-            pass
-
-    if api_keys.leakcheck:
-        try:
-            return await _check_leakcheck(email, api_keys.leakcheck)
         except ModuleError:
             pass
 
@@ -66,18 +60,3 @@ async def _check_breachdirectory(email: str, api_key: str) -> List[Dict]:
     return findings
 
 
-async def _check_leakcheck(email: str, api_key: str) -> List[Dict]:
-    url = f"https://leakcheck.io/api/public?check={email}"
-    headers = {"X-API-Key": api_key}
-    resp = await httpx.AsyncClient(timeout=30, headers=headers).get(url)
-    if resp.status_code != 200:
-        raise ModuleError(f"LeakCheck error: {resp.status_code}")
-    data = resp.json()
-    if not data.get("found"):
-        return []
-    findings = []
-    for s in data.get("sources", []):
-        findings.append({"source": "leakcheck", "type": "breach",
-            "data": {"breach": s.get("name"), "date": s.get("date")},
-            "confidence": 0.80, "url": None})
-    return findings

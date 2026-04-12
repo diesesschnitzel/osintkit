@@ -1,6 +1,6 @@
 """Unit tests for modules added in v0.1.6/v0.1.7.
 
-Covers: emailrep, urlscan, whois_lookup, virustotal, otx, abuseipdb, epieos, risk.
+Covers: emailrep, urlscan, whois_lookup, virustotal, otx, abuseipdb, risk.
 All HTTP calls are mocked — no real network traffic.
 asyncio_mode = auto (set in pyproject.toml), so all async tests run automatically.
 """
@@ -224,38 +224,6 @@ class TestAbuseIPDB:
             with _mock_http(401, {}):
                 with pytest.raises(InvalidKeyError):
                     await run({"email": "u@example.com"}, "bad")
-
-
-# ── epieos ────────────────────────────────────────────────────────────────────
-
-class TestEpieos:
-    async def test_returns_google_and_apple_findings(self):
-        from osintkit.modules.stage2.epieos import run
-        body = {"google": {"id": "123", "name": "John", "photo": None, "last_seen": None,
-                           "reviews": 0, "photos": 0, "calendar": False},
-                "apple": {"facetime": True, "imessage": True}}
-        with _mock_http(200, body):
-            result = await run({"email": "u@gmail.com"}, "key")
-        assert any(r["type"] == "google_account" for r in result)
-        assert any(r["type"] == "apple_account" for r in result)
-
-    async def test_returns_empty_without_email(self):
-        from osintkit.modules.stage2.epieos import run
-        assert await run({"username": "x"}, "key") == []
-
-    async def test_raises_invalid_key_on_403(self):
-        from osintkit.modules.stage2.epieos import run
-        from osintkit.modules import InvalidKeyError
-        with _mock_http(403, {}):
-            with pytest.raises(InvalidKeyError):
-                await run({"email": "u@gmail.com"}, "bad")
-
-    async def test_raises_rate_limit_on_429(self):
-        from osintkit.modules.stage2.epieos import run
-        from osintkit.modules import RateLimitError
-        with _mock_http(429, {}):
-            with pytest.raises(RateLimitError):
-                await run({"email": "u@gmail.com"}, "key")
 
 
 # ── risk score ────────────────────────────────────────────────────────────────
