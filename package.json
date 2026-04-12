@@ -1,6 +1,6 @@
 {
   "name": "osintkit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "OSINT CLI for personal digital footprint analysis",
   "bin": {
     "osintkit": "./bin/osintkit.js"

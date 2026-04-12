@@ -73,6 +73,13 @@ CHANGELOG: dict[str, dict] = {
         ],
         "new_keys": [],
     },
+    "0.2.1": {
+        "changes": [
+            "Fix: removed unused epieos and leakcheck modules",
+            "Fix: breach.py no longer references removed config keys",
+        ],
+        "new_keys": [],
+    },
 }
 
 _console = Console()
