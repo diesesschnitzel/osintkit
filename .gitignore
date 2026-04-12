@@ -68,3 +68,4 @@ bin/datashadow.js
 COMPREHENSIVE_TEST_FINDINGS.md
 COMPREHENSIVE_TEST_REPORT.md
 docs/
+tests/comprehensive_qa_test.py
